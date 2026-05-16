@@ -1,0 +1,30 @@
+const mensagemRepository = require("../repositories/mensagemRepository");
+
+async function criar(req, res, next) {
+  try {
+    const { conversa_id, remetente, conteudo } = req.body;
+
+    if (!remetente || !conteudo) {
+      return res.status(400).json({ erro: "remetente e conteudo sao obrigatorios." });
+    }
+
+    const mensagem = await mensagemRepository.criarMensagem({ conversa_id, remetente, conteudo });
+    return res.status(201).json(mensagem);
+  } catch (error) {
+    return next(error);
+  }
+}
+
+async function listarPorConversa(req, res, next) {
+  try {
+    const mensagens = await mensagemRepository.listarMensagensPorConversa(req.params.conversa_id);
+    return res.json(mensagens);
+  } catch (error) {
+    return next(error);
+  }
+}
+
+module.exports = {
+  criar,
+  listarPorConversa,
+};
