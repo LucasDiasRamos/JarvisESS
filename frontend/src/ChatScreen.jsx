@@ -1,13 +1,16 @@
 import { useEffect, useRef, useState } from "react";
 import { fmtDate, uid } from "./helpers";
 
-const USER = { firstName: "Lucas", fullName: "Lucas Mateus" };
-
 function greetingForNow() {
   const h = new Date().getHours();
   if (h >= 5 && h < 12) return "Bom dia";
   if (h >= 12 && h < 18) return "Boa tarde";
   return "Boa noite";
+}
+
+function firstNameFromUser(user) {
+  const name = user?.nome || user?.name || "";
+  return name.trim().split(/\s+/)[0] || "aluno";
 }
 
 const RECENT_CONVERSATIONS = [
@@ -19,12 +22,13 @@ const RECENT_CONVERSATIONS = [
   { id: "c5", title: "Fichamento — Sociologia", when: "21/04" },
 ];
 
-export default function ChatScreen({ docs, addTask, addEvent }) {
+export default function ChatScreen({ docs, addTask, addEvent, currentUser }) {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [typing, setTyping] = useState(false);
   const [sideOpen, setSideOpen] = useState(false);
   const scrollRef = useRef(null);
+  const firstName = firstNameFromUser(currentUser);
 
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
@@ -172,7 +176,7 @@ export default function ChatScreen({ docs, addTask, addEvent }) {
           <div className="chat-empty">
             <div className="empty-greeting">
               <span className="greet-word">{greetingForNow()},</span>
-              <span className="greet-name">{USER.firstName}.</span>
+              <span className="greet-name">{firstName}.</span>
             </div>
             <p className="empty-sub">Como posso ajudar com seus estudos hoje?</p>
             <div className="empty-suggest">

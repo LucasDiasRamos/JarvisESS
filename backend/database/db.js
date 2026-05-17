@@ -28,9 +28,42 @@ function initDatabase() {
         return;
       }
 
-      resolve(db);
+      ensureArquivoColumns(db)
+        .then(() => resolve(db))
+        .catch(reject);
     });
   });
+}
+
+function tableInfo(db, tableName) {
+  return new Promise((resolve, reject) => {
+    db.all(`PRAGMA table_info(${tableName})`, (error, rows) => {
+      if (error) {
+        reject(error);
+        return;
+      }
+
+      resolve(rows);
+    });
+  });
+}
+
+async function ensureArquivoColumns(db) {
+  const columns = await tableInfo(db, "arquivos_pdf");
+  const names = new Set(columns.map((column) => column.name));
+  const additions = [
+    ["caminho_md", "TEXT"],
+    ["source", "TEXT DEFAULT 'upload'"],
+    ["status_processamento", "TEXT DEFAULT 'pendente'"],
+    ["tamanho_bytes", "INTEGER DEFAULT 0"],
+    ["paginas", "INTEGER"],
+  ];
+
+  for (const [name, definition] of additions) {
+    if (!names.has(name)) {
+      await run(`ALTER TABLE arquivos_pdf ADD COLUMN ${name} ${definition}`);
+    }
+  }
 }
 
 function run(sql, params = []) {

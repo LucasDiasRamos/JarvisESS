@@ -2,7 +2,7 @@ const db = require("../database/db");
 
 async function criarConversa({ usuario_id, titulo }) {
   const result = await db.run(
-    "INSERT INTO conversas (usuario_id, titulo) VALUES (?, ?)",
+    "INSERT INTO conversas (user_id, titulo) VALUES (?, ?)",
     [usuario_id || null, titulo || null],
   );
 
@@ -11,13 +11,13 @@ async function criarConversa({ usuario_id, titulo }) {
 
 function listarConversasPorUsuario(usuarioId) {
   return db.all(
-    "SELECT * FROM conversas WHERE usuario_id = ? ORDER BY criado_em DESC",
+    "SELECT *, user_id AS usuario_id FROM conversas WHERE user_id = ? ORDER BY criado_em DESC",
     [usuarioId],
   );
 }
 
 function buscarConversaPorId(id) {
-  return db.get("SELECT * FROM conversas WHERE id = ?", [id]);
+  return db.get("SELECT *, user_id AS usuario_id FROM conversas WHERE id = ?", [id]);
 }
 
 module.exports = {

@@ -2,7 +2,7 @@ const db = require("../database/db");
 
 async function criarUsuario({ nome, email, tipo = "aluno" }) {
   const result = await db.run(
-    "INSERT INTO usuarios (nome, email, tipo) VALUES (?, ?, ?)",
+    "INSERT INTO user (nome, email, tipo) VALUES (?, ?, ?)",
     [nome, email || null, tipo || "aluno"],
   );
 
@@ -10,11 +10,11 @@ async function criarUsuario({ nome, email, tipo = "aluno" }) {
 }
 
 function listarUsuarios() {
-  return db.all("SELECT * FROM usuarios ORDER BY criado_em DESC");
+  return db.all("SELECT * FROM user ORDER BY criado_em DESC");
 }
 
 function buscarUsuarioPorId(id) {
-  return db.get("SELECT * FROM usuarios WHERE id = ?", [id]);
+  return db.get("SELECT * FROM user WHERE id = ?", [id]);
 }
 
 module.exports = {

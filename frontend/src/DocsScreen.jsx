@@ -1,28 +1,51 @@
 import { useRef, useState } from "react";
-import { fmtDate, todayISO, uid } from "./helpers";
+import { fmtDate } from "./helpers";
 
-export default function DocsScreen({ docs, setDocs }) {
+function formatSize(bytes) {
+  if (!bytes) return "0 MB";
+  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+}
+
+export default function DocsScreen({ docs, setDocs, currentUser, apiBaseUrl, reloadDocs }) {
   const [dragOver, setDragOver] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState("");
   const fileInput = useRef(null);
 
-  function addFiles(list) {
+  async function addFiles(list) {
     const arr = Array.from(list || []);
     if (!arr.length) return;
-    const now = todayISO();
-    const newOnes = arr.map((f) => ({
-      id: uid(),
-      name: f.name,
-      size: (f.size / 1024 / 1024).toFixed(1) + " MB",
-      pages: Math.max(8, Math.round(f.size / 80000)),
-      added: now,
-      source: "upload",
-      url: URL.createObjectURL(f),
-    }));
-    setDocs((d) => [...newOnes, ...d]);
-  }
 
-  function remove(id) {
-    setDocs((d) => d.filter((x) => x.id !== id));
+    setUploading(true);
+    setUploadError("");
+
+    try {
+      for (const file of arr) {
+        const formData = new FormData();
+        formData.append("arquivo", file);
+
+        const params = currentUser?.id ? `?usuario_id=${currentUser.id}` : "";
+        const response = await fetch(`${apiBaseUrl}/arquivos/upload${params}`, {
+          method: "POST",
+          body: formData,
+        });
+
+        if (!response.ok) {
+          const error = await response.json().catch(() => ({}));
+          throw new Error(error.erro || `Falha ao enviar ${file.name}`);
+        }
+
+        const arquivo = await response.json();
+        setDocs((current) => [arquivo, ...current.filter((doc) => doc.id !== arquivo.id)]);
+      }
+
+      if (reloadDocs) await reloadDocs();
+    } catch (error) {
+      setUploadError(error.message || "Nao foi possivel enviar o arquivo.");
+    } finally {
+      setUploading(false);
+      if (fileInput.current) fileInput.current.value = "";
+    }
   }
 
   const rawCount = docs.filter((d) => d.source === "raw").length;
@@ -55,9 +78,10 @@ export default function DocsScreen({ docs, setDocs }) {
             <path d="M11 14h10M11 18h10M11 22h6"></path>
           </svg>
         </div>
-        <div className="dz-title">Arraste PDFs para esta área</div>
-        <div className="dz-sub">ou <button className="link" onClick={() => fileInput.current && fileInput.current.click()}>escolha do seu computador</button> · até 200 MB por arquivo</div>
+        <div className="dz-title">{uploading ? "Enviando e convertendo..." : "Arraste PDFs para esta área"}</div>
+        <div className="dz-sub">ou <button className="link" onClick={() => fileInput.current && fileInput.current.click()} disabled={uploading}>escolha do seu computador</button> · até 200 MB por arquivo</div>
         <input ref={fileInput} type="file" accept="application/pdf" multiple hidden onChange={(e) => addFiles(e.target.files)} />
+        {uploadError && <div className="empty">{uploadError}</div>}
       </section>
 
       <section className="doc-list">
@@ -78,14 +102,13 @@ export default function DocsScreen({ docs, setDocs }) {
               </span>
               <div>
                 <div className="doc-name">{d.name}</div>
-                <div className="doc-meta">{d.size}</div>
+                <div className="doc-meta">{d.size || formatSize(d.sizeBytes || d.tamanho_bytes)} · {d.status_processamento || "pendente"}</div>
               </div>
             </div>
-            <div className="doc-cell mono" data-label="Páginas">{d.pages}</div>
+            <div className="doc-cell mono" data-label="Páginas">{d.pages || d.paginas || "-"}</div>
             <div className="doc-cell mono" data-label="Adicionado">{fmtDate(d.added)}</div>
             <div className="doc-actions">
               <a className="row-btn" href={d.url} target="_blank" rel="noopener noreferrer">Visualizar</a>
-              <button className="row-btn danger" onClick={() => remove(d.id)}>Remover</button>
             </div>
           </article>
         ))}

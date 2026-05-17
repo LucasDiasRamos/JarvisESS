@@ -2,7 +2,7 @@ const db = require("../database/db");
 
 async function criarTarefa({ usuario_id, titulo, descricao, data_limite }) {
   const result = await db.run(
-    `INSERT INTO tarefas (usuario_id, titulo, descricao, data_limite)
+    `INSERT INTO tarefas (user_id, titulo, descricao, data_limite)
      VALUES (?, ?, ?, ?)`,
     [usuario_id || null, titulo, descricao || null, data_limite || null],
   );
@@ -12,7 +12,7 @@ async function criarTarefa({ usuario_id, titulo, descricao, data_limite }) {
 
 function listarTarefasPorUsuario(usuarioId) {
   return db.all(
-    "SELECT * FROM tarefas WHERE usuario_id = ? ORDER BY concluida ASC, data_limite ASC, criado_em DESC",
+    "SELECT *, user_id AS usuario_id FROM tarefas WHERE user_id = ? ORDER BY concluida ASC, data_limite ASC, criado_em DESC",
     [usuarioId],
   );
 }
@@ -27,7 +27,7 @@ async function deletarTarefa(id) {
 }
 
 function buscarTarefaPorId(id) {
-  return db.get("SELECT * FROM tarefas WHERE id = ?", [id]);
+  return db.get("SELECT *, user_id AS usuario_id FROM tarefas WHERE id = ?", [id]);
 }
 
 module.exports = {

@@ -5,8 +5,19 @@ import StudentScreen from "./StudentScreen";
 import { seedDocs, seedEvents, seedTasks } from "./data";
 
 const STORAGE_KEY = "jarvis-edu-state-vite";
+const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3001";
 
-function TopNav({ screen, setScreen }) {
+function initialsFromUser(user) {
+  const name = user?.nome || user?.name || "";
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+
+  if (parts.length === 0) return "AL";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+
+  return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
+}
+
+function TopNav({ screen, setScreen, currentUser }) {
   const items = [
     { id: "landing", label: "Inicio" },
     { id: "chat", label: "Chat" },
@@ -42,7 +53,9 @@ function TopNav({ screen, setScreen }) {
       </nav>
       <div className="nav-right">
         <span className="badge-mono">v1.0 beta</span>
-        <button className="avatar" aria-label="Conta">MR</button>
+        <button className="avatar" aria-label={currentUser?.nome ? `Conta de ${currentUser.nome}` : "Conta"}>
+          {initialsFromUser(currentUser)}
+        </button>
       </div>
     </header>
   );
@@ -149,6 +162,45 @@ export default function App() {
   const [docs, setDocs] = useState(initial.docs);
   const [tasks, setTasks] = useState(initial.tasks);
   const [events, setEvents] = useState(initial.events);
+  const [currentUser, setCurrentUser] = useState(null);
+
+  async function loadDocsFromDatabase() {
+    try {
+      const response = await fetch(`${API_BASE_URL}/arquivos`);
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+      const arquivos = await response.json();
+      if (Array.isArray(arquivos)) {
+        setDocs(arquivos);
+      }
+    } catch (error) {
+      console.warn("Nao foi possivel carregar os documentos do banco", error);
+    }
+  }
+
+  useEffect(() => {
+    let ignore = false;
+
+    async function loadCurrentUser() {
+      try {
+        const response = await fetch(`${API_BASE_URL}/usuarios`);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+        const users = await response.json();
+        if (!ignore && Array.isArray(users) && users.length > 0) {
+          setCurrentUser(users[0]);
+        }
+      } catch (error) {
+        console.warn("Nao foi possivel carregar o usuario atual", error);
+      }
+    }
+
+    loadCurrentUser();
+    loadDocsFromDatabase();
+    return () => {
+      ignore = true;
+    };
+  }, []);
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ docs, tasks, events }));
@@ -159,10 +211,18 @@ export default function App() {
 
   return (
     <div data-screen-label={screenLabel(screen)}>
-      <TopNav screen={screen} setScreen={setScreen} />
+      <TopNav screen={screen} setScreen={setScreen} currentUser={currentUser} />
       {screen === "landing" && <Landing setScreen={setScreen} />}
-      {screen === "chat" && <ChatScreen docs={docs} addTask={addTask} addEvent={addEvent} />}
-      {screen === "docs" && <DocsScreen docs={docs} setDocs={setDocs} />}
+      {screen === "chat" && <ChatScreen docs={docs} addTask={addTask} addEvent={addEvent} currentUser={currentUser} />}
+      {screen === "docs" && (
+        <DocsScreen
+          docs={docs}
+          setDocs={setDocs}
+          currentUser={currentUser}
+          apiBaseUrl={API_BASE_URL}
+          reloadDocs={loadDocsFromDatabase}
+        />
+      )}
       {screen === "student" && <StudentScreen tasks={tasks} setTasks={setTasks} events={events} />}
     </div>
   );

@@ -2,7 +2,7 @@ const db = require("../database/db");
 
 async function criarLembrete({ usuario_id, titulo, descricao, data_hora }) {
   const result = await db.run(
-    `INSERT INTO lembretes (usuario_id, titulo, descricao, data_hora)
+    `INSERT INTO lembretes (user_id, titulo, descricao, data_hora)
      VALUES (?, ?, ?, ?)`,
     [usuario_id || null, titulo, descricao || null, data_hora],
   );
@@ -12,7 +12,7 @@ async function criarLembrete({ usuario_id, titulo, descricao, data_hora }) {
 
 function listarLembretesPorUsuario(usuarioId) {
   return db.all(
-    "SELECT * FROM lembretes WHERE usuario_id = ? ORDER BY data_hora ASC",
+    "SELECT *, user_id AS usuario_id FROM lembretes WHERE user_id = ? ORDER BY data_hora ASC",
     [usuarioId],
   );
 }
@@ -22,7 +22,7 @@ async function deletarLembrete(id) {
 }
 
 function buscarLembretePorId(id) {
-  return db.get("SELECT * FROM lembretes WHERE id = ?", [id]);
+  return db.get("SELECT *, user_id AS usuario_id FROM lembretes WHERE id = ?", [id]);
 }
 
 module.exports = {
