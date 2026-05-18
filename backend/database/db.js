@@ -2,7 +2,7 @@ const fs = require("fs");
 const path = require("path");
 const sqlite3 = require("sqlite3").verbose();
 
-const dbPath = path.join(__dirname, "..", "jarvis.db");
+const dbPath = process.env.DB_PATH || path.join(__dirname, "..", "jarvis.db");
 const schemaPath = path.join(__dirname, "schema.sql");
 
 let database;
