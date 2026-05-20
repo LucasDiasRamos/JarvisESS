@@ -1,6 +1,8 @@
+import inspect
 import json
 import re
 
+from backend.ai.logger import registrar_chamada_tool
 from backend.ai.tools.tarefa_tools import (
     criar_tarefa,
     listar_tarefas,
@@ -53,6 +55,37 @@ TOOLS = {
     "buscar_material_rag": buscar_material_rag,
 }
 
+ARGUMENT_ALIASES = {
+    "concluir_tarefa": {"id": "tarefa_id"},
+    "excluir_tarefa": {"id": "tarefa_id"},
+    "excluir_lembrete": {"id": "lembrete_id"},
+    "deletar_arquivo": {"id": "arquivo_id"},
+    "registrar_arquivo": {
+        "nome_arquivo": "nome",
+        "caminho_arquivo": "caminho",
+    },
+}
+
+
+def _normalizar_argumentos(nome_tool: str, funcao, argumentos: dict) -> dict:
+    aliases = ARGUMENT_ALIASES.get(nome_tool, {})
+    normalizados = {}
+
+    for chave, valor in argumentos.items():
+        normalizados[aliases.get(chave, chave)] = valor
+
+    assinatura = inspect.signature(funcao)
+    parametros = assinatura.parameters
+
+    if any(param.kind == inspect.Parameter.VAR_KEYWORD for param in parametros.values()):
+        return normalizados
+
+    return {
+        chave: valor
+        for chave, valor in normalizados.items()
+        if chave in parametros
+    }
+
 def interpretar_resposta_llm(resposta_texto: str) -> dict:
     texto = resposta_texto.strip()
 
@@ -73,30 +106,41 @@ def executar_tool(nome_tool: str, argumentos: dict | None = None) -> dict:
     if argumentos is None:
         argumentos = {}
 
+    user_id = argumentos.get("user_id")
+
     if nome_tool not in TOOLS:
-        return {
+        resultado = {
             "erro": True,
             "mensagem": f"Tool '{nome_tool}' não encontrada."
         }
+        registrar_chamada_tool(nome_tool, argumentos, resultado, user_id=user_id)
+        return resultado
 
     try:
         funcao = TOOLS[nome_tool]
-        resultado = funcao(**argumentos)
+        argumentos_normalizados = _normalizar_argumentos(nome_tool, funcao, argumentos)
+        resultado = funcao(**argumentos_normalizados)
 
-        return {
+        resposta = {
             "erro": False,
             "tool": nome_tool,
             "resultado": resultado
         }
+        registrar_chamada_tool(nome_tool, argumentos_normalizados, resposta, user_id=user_id)
+        return resposta
 
     except TypeError as erro:
-        return {
+        resultado = {
             "erro": True,
             "mensagem": f"Argumentos inválidos para a tool '{nome_tool}': {erro}"
         }
+        registrar_chamada_tool(nome_tool, argumentos, resultado, user_id=user_id)
+        return resultado
 
     except Exception as erro:
-        return {
+        resultado = {
             "erro": True,
             "mensagem": f"Erro ao executar a tool '{nome_tool}': {erro}"
         }
+        registrar_chamada_tool(nome_tool, argumentos, resultado, user_id=user_id)
+        return resultado

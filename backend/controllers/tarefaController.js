@@ -2,13 +2,15 @@ const tarefaRepository = require("../repositories/tarefaRepository");
 
 async function criar(req, res, next) {
   try {
-    const { usuario_id, titulo, descricao, data_limite } = req.body;
+    const { titulo, descricao, data_limite } = req.body;
+    const origem = req.body?.origem || req.body?.source || "user";
+    const usuario_id = req.body?.usuario_id || req.body?.user_id;
 
     if (!titulo) {
       return res.status(400).json({ erro: "O campo titulo e obrigatorio." });
     }
 
-    const tarefa = await tarefaRepository.criarTarefa({ usuario_id, titulo, descricao, data_limite });
+    const tarefa = await tarefaRepository.criarTarefa({ usuario_id, titulo, descricao, data_limite, origem });
     return res.status(201).json(tarefa);
   } catch (error) {
     return next(error);
@@ -17,7 +19,8 @@ async function criar(req, res, next) {
 
 async function listarPorUsuario(req, res, next) {
   try {
-    const tarefas = await tarefaRepository.listarTarefasPorUsuario(req.params.usuario_id);
+    const userId = req.params.usuario_id || req.params.user_id;
+    const tarefas = await tarefaRepository.listarTarefasPorUsuario(userId);
     return res.json(tarefas);
   } catch (error) {
     return next(error);

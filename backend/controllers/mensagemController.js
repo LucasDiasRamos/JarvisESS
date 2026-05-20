@@ -2,7 +2,8 @@ const mensagemRepository = require("../repositories/mensagemRepository");
 
 async function criar(req, res, next) {
   try {
-    const { conversa_id, remetente, conteudo } = req.body;
+    const { remetente, conteudo } = req.body;
+    const conversa_id = req.body?.conversa_id || req.body?.conversation_id;
 
     if (!remetente || !conteudo) {
       return res.status(400).json({ erro: "remetente e conteudo sao obrigatorios." });

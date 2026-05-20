@@ -1,10 +1,10 @@
 const db = require("../database/db");
 
-async function criarTarefa({ usuario_id, titulo, descricao, data_limite }) {
+async function criarTarefa({ usuario_id, titulo, descricao, data_limite, origem = "user" }) {
   const result = await db.run(
-    `INSERT INTO tarefas (user_id, titulo, descricao, data_limite)
-     VALUES (?, ?, ?, ?)`,
-    [usuario_id || null, titulo, descricao || null, data_limite || null],
+    `INSERT INTO tarefas (user_id, titulo, descricao, data_limite, origem)
+     VALUES (?, ?, ?, ?, ?)`,
+    [usuario_id || null, titulo, descricao || null, data_limite || null, origem || "user"],
   );
 
   return buscarTarefaPorId(result.id);

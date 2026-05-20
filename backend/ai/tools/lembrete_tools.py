@@ -15,10 +15,10 @@ def criar_lembrete(
     lembrete_id = executar_insert(
         """
         INSERT INTO lembretes 
-        (user_id, titulo, descricao, data_hora) 
-        VALUES (?, ?, ?, ?)
+        (user_id, titulo, descricao, data_hora, origem) 
+        VALUES (?, ?, ?, ?, ?)
         """,
-        (user_id, titulo, descricao, data_hora)
+        (user_id, titulo, descricao, data_hora, "jarvis")
     )
     lembrete = executar_select(
         """

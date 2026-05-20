@@ -1,10 +1,10 @@
 const db = require("../database/db");
 
-async function criarLembrete({ usuario_id, titulo, descricao, data_hora }) {
+async function criarLembrete({ usuario_id, titulo, descricao, data_hora, tipo = "event", origem = "user" }) {
   const result = await db.run(
-    `INSERT INTO lembretes (user_id, titulo, descricao, data_hora)
-     VALUES (?, ?, ?, ?)`,
-    [usuario_id || null, titulo, descricao || null, data_hora],
+    `INSERT INTO lembretes (user_id, titulo, descricao, tipo, data_hora, origem)
+     VALUES (?, ?, ?, ?, ?, ?)`,
+    [usuario_id || null, titulo, descricao || null, tipo || "event", data_hora, origem || "user"],
   );
 
   return buscarLembretePorId(result.id);

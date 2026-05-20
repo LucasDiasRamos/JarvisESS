@@ -18,10 +18,10 @@ def criar_tarefa(
     tarefa_id = executar_insert(
         """
         INSERT INTO tarefas 
-        (user_id, titulo, descricao, data_limite) 
-        VALUES (?, ?, ?, ?)
+        (user_id, titulo, descricao, data_limite, origem) 
+        VALUES (?, ?, ?, ?, ?)
         """,
-        (user_id, titulo, descricao, data_limite)
+        (user_id, titulo, descricao, data_limite, "jarvis")
     )
     tarefa = executar_select(
         """

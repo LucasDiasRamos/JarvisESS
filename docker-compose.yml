@@ -6,6 +6,13 @@ services:
     environment:
       PORT: 3001
       DB_PATH: /app/data/jarvis.db
+      JARVIS_LLM_API_KEY: ${JARVIS_LLM_API_KEY:-}
+      JARVIS_LLM_BASE_URL: ${JARVIS_LLM_BASE_URL:-}
+      JARVIS_LLM_MODEL: ${JARVIS_LLM_MODEL:-google/gemma-3-12b-it}
+      JARVIS_LLM_TIMEOUT: ${JARVIS_LLM_TIMEOUT:-30}
+      JARVIS_LOG_DIR: /app/data/logs
+      JARVIS_TIMEZONE: ${JARVIS_TIMEZONE:-America/Cuiaba}
+      TZ: ${TZ:-America/Cuiaba}
     ports:
       - "3001:3001"
     volumes:

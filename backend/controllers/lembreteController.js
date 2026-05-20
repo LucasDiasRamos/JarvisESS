@@ -2,13 +2,16 @@ const lembreteRepository = require("../repositories/lembreteRepository");
 
 async function criar(req, res, next) {
   try {
-    const { usuario_id, titulo, descricao, data_hora } = req.body;
+    const { titulo, descricao, data_hora } = req.body;
+    const tipo = req.body?.tipo || req.body?.kind || "event";
+    const origem = req.body?.origem || req.body?.source || "user";
+    const usuario_id = req.body?.usuario_id || req.body?.user_id;
 
     if (!titulo || !data_hora) {
       return res.status(400).json({ erro: "titulo e data_hora sao obrigatorios." });
     }
 
-    const lembrete = await lembreteRepository.criarLembrete({ usuario_id, titulo, descricao, data_hora });
+    const lembrete = await lembreteRepository.criarLembrete({ usuario_id, titulo, descricao, data_hora, tipo, origem });
     return res.status(201).json(lembrete);
   } catch (error) {
     return next(error);
@@ -17,7 +20,8 @@ async function criar(req, res, next) {
 
 async function listarPorUsuario(req, res, next) {
   try {
-    const lembretes = await lembreteRepository.listarLembretesPorUsuario(req.params.usuario_id);
+    const userId = req.params.usuario_id || req.params.user_id;
+    const lembretes = await lembreteRepository.listarLembretesPorUsuario(userId);
     return res.json(lembretes);
   } catch (error) {
     return next(error);

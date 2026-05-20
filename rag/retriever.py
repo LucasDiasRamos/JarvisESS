@@ -24,7 +24,7 @@ def _get_collection():
 def search(query: str, n_results: int = 3) -> list[dict]:
     """
     Busca o chunks mais relevantes para query.
-    Retorna lista de dicts com 'text e 'source'.
+    Retorna lista de dicts com 'text', 'source' e score de relevancia.
     """
     model = _get_model()
     collection = _get_collection()
@@ -33,21 +33,26 @@ def search(query: str, n_results: int = 3) -> list[dict]:
     
     results = collection.query(
         query_embeddings=[query_embedding],
-        n_results=n_results
+        n_results=n_results,
+        include=["documents", "metadatas", "distances"]
     )
     
     chunks = []
-    for text, metadata in zip(results["documents"][0], results["metadatas"][0]):
+    distances = results.get("distances", [[]])[0]
+    for text, metadata, distance in zip(results["documents"][0], results["metadatas"][0], distances):
+        score = max(0.0, 1.0 - float(distance)) if distance is not None else None
         chunks.append({
             "text": text,
-            "source": metadata["source"]
+            "source": metadata["source"],
+            "score_relevancia": score
         })
         
     return chunks
 
-def build_context(query: str, n_results: int = 3) -> str:
+def build_context(query: str, n_results: int = 3, chunks: list[dict] | None = None) -> str:
     """Monta o contexto formatado para passar à LLM."""
-    chunks = search(query, n_results)
+    if chunks is None:
+        chunks = search(query, n_results)
     
     context = ""
     for i, chunk in enumerate(chunks):

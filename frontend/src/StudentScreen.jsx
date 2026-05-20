@@ -1,25 +1,163 @@
 import { useMemo, useState } from "react";
-import { fmtDate, todayISO, uid } from "./helpers";
+import { fmtDate, todayISO } from "./helpers";
 
-export default function StudentScreen({ tasks, setTasks, events }) {
+const EVENT_TYPES = [
+  { id: "exam", label: "Prova" },
+  { id: "deadline", label: "Entrega" },
+  { id: "class", label: "Aula" },
+  { id: "event", label: "Evento" },
+];
+
+export default function StudentScreen({ tasks, setTasks, events, currentUser, apiBaseUrl, reloadStudentData }) {
   const today = new Date();
   const [view, setView] = useState({ y: today.getFullYear(), m: today.getMonth() });
+  const [selectedDate, setSelectedDate] = useState(todayISO());
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [picker, setPicker] = useState({
+    day: today.getDate(),
+    month: today.getMonth(),
+    year: today.getFullYear(),
+  });
   const [newTitle, setNewTitle] = useState("");
   const [newDue, setNewDue] = useState("");
+  const [taskError, setTaskError] = useState("");
+  const [calendarTitle, setCalendarTitle] = useState("");
+  const [calendarTime, setCalendarTime] = useState("09:00");
+  const [calendarType, setCalendarType] = useState("event");
+  const [calendarError, setCalendarError] = useState("");
   const [filter, setFilter] = useState("all");
+  const userId = currentUser?.id || currentUser?.usuario_id || 1;
 
-  const grid = useMemo(() => buildMonthGrid(view.y, view.m, events), [view, events]);
+  const grid = useMemo(() => buildMonthGrid(view.y, view.m, events, selectedDate), [view, events, selectedDate]);
+  const daysInPickerMonth = new Date(picker.year, picker.month + 1, 0).getDate();
+  const pickerDay = Math.min(picker.day, daysInPickerMonth);
 
-  function toggle(id) {
-    setTasks((t) => t.map((x) => x.id === id ? { ...x, done: !x.done } : x));
+  async function toggle(id) {
+    const current = tasks.find((task) => task.id === id);
+    if (!current || current.done) return;
+
+    const previous = tasks;
+    setTasks((t) => t.map((x) => x.id === id ? { ...x, done: true } : x));
+
+    try {
+      const response = await fetch(`${apiBaseUrl}/tarefas/${id}/concluir`, { method: "PUT" });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      await reloadStudentData?.();
+    } catch (error) {
+      console.warn("Nao foi possivel concluir a tarefa", error);
+      setTasks(previous);
+    }
   }
-  function addNewTask() {
+
+  async function addNewTask() {
     if (!newTitle.trim()) return;
-    setTasks((t) => [
-    { id: uid(), title: newTitle.trim(), due: newDue || "2026-05-20", done: false, source: "you", tag: "Pessoal" },
-    ...t]
-    );
-    setNewTitle("");setNewDue("");
+
+    const title = newTitle.trim();
+    const due = newDue || null;
+    setTaskError("");
+    setNewTitle("");
+    setNewDue("");
+
+    try {
+      const response = await fetch(`${apiBaseUrl}/tarefas`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          user_id: userId,
+          usuario_id: userId,
+          origem: "user",
+          titulo: title,
+          descricao: "",
+          data_limite: due,
+        }),
+      });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      await reloadStudentData?.();
+    } catch (error) {
+      console.warn("Nao foi possivel criar a tarefa", error);
+      setTaskError("Nao foi possivel adicionar a tarefa.");
+      setNewTitle(title);
+      setNewDue(due || "");
+    }
+  }
+
+  async function addCalendarItem() {
+    const title = calendarTitle.trim();
+    if (!title) return;
+
+    setCalendarError("");
+
+    try {
+      const response = await fetch(`${apiBaseUrl}/lembretes`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          user_id: userId,
+          usuario_id: userId,
+          origem: "user",
+          titulo: title,
+          descricao: "",
+          tipo: calendarType,
+          data_hora: `${selectedDate} ${calendarTime || "09:00"}:00`,
+        }),
+      });
+
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+      setCalendarTitle("");
+      await reloadStudentData?.();
+    } catch (error) {
+      console.warn("Nao foi possivel criar o item do calendario", error);
+      setCalendarError("Nao foi possivel adicionar no calendario.");
+    }
+  }
+
+  async function removeTask(id) {
+    const previous = tasks;
+    setTasks((all) => all.filter((x) => x.id !== id));
+
+    try {
+      const response = await fetch(`${apiBaseUrl}/tarefas/${id}`, { method: "DELETE" });
+      if (!response.ok && response.status !== 204) throw new Error(`HTTP ${response.status}`);
+      await reloadStudentData?.();
+    } catch (error) {
+      console.warn("Nao foi possivel excluir a tarefa", error);
+      setTasks(previous);
+    }
+  }
+
+  function syncPickerFromView() {
+    setPicker({
+      day: Number(selectedDate.slice(8, 10)) || today.getDate(),
+      month: view.m,
+      year: view.y,
+    });
+    setPickerOpen((open) => !open);
+  }
+
+  function goToToday() {
+    const now = new Date();
+    const iso = todayISO();
+    setSelectedDate(iso);
+    setView({ y: now.getFullYear(), m: now.getMonth() });
+    setPicker({ day: now.getDate(), month: now.getMonth(), year: now.getFullYear() });
+    setPickerOpen(false);
+  }
+
+  function applyCalendarSelection() {
+    const day = String(pickerDay).padStart(2, "0");
+    const month = String(picker.month + 1).padStart(2, "0");
+    setSelectedDate(`${picker.year}-${month}-${day}`);
+    setView({ y: picker.year, m: picker.month });
+    setPicker((current) => ({ ...current, day: pickerDay }));
+    setPickerOpen(false);
+  }
+
+  function selectCalendarDay(cell) {
+    const [year, month, day] = cell.iso.split("-").map(Number);
+    setSelectedDate(cell.iso);
+    setView({ y: year, m: month - 1 });
+    setPicker({ day, month: month - 1, year });
   }
 
   const filtered = tasks.filter((t) => filter === "all" ? true : filter === "open" ? !t.done : t.done);
@@ -51,7 +189,52 @@ export default function StudentScreen({ tasks, setTasks, events }) {
             </div>
             <div className="cal-nav">
               <button className="icon-btn" onClick={() => setView(prev(view))} aria-label="Mês anterior">‹</button>
-              <button className="icon-btn" onClick={() => setView({ y: today.getFullYear(), m: today.getMonth() })}>Hoje</button>
+              <div className="calendar-picker">
+                <button className="icon-btn" onClick={syncPickerFromView} aria-expanded={pickerOpen} type="button">Hoje</button>
+                {pickerOpen && (
+                  <div className="calendar-picker-popover">
+                    <div className="picker-grid">
+                      <label>
+                        <span>Dia</span>
+                        <select
+                          value={pickerDay}
+                          onChange={(e) => setPicker((current) => ({ ...current, day: Number(e.target.value) }))}
+                        >
+                          {Array.from({ length: daysInPickerMonth }, (_, index) => index + 1).map((day) => (
+                            <option key={day} value={day}>{day}</option>
+                          ))}
+                        </select>
+                      </label>
+                      <label>
+                        <span>Mês</span>
+                        <select
+                          value={picker.month}
+                          onChange={(e) => setPicker((current) => ({ ...current, month: Number(e.target.value) }))}
+                        >
+                          {monthOptions().map((month) => (
+                            <option key={month.value} value={month.value}>{month.label}</option>
+                          ))}
+                        </select>
+                      </label>
+                      <label>
+                        <span>Ano</span>
+                        <select
+                          value={picker.year}
+                          onChange={(e) => setPicker((current) => ({ ...current, year: Number(e.target.value) }))}
+                        >
+                          {yearOptions(today.getFullYear()).map((year) => (
+                            <option key={year} value={year}>{year}</option>
+                          ))}
+                        </select>
+                      </label>
+                    </div>
+                    <div className="picker-actions">
+                      <button className="row-btn" type="button" onClick={goToToday}>Ir para hoje</button>
+                      <button className="btn btn-primary" type="button" onClick={applyCalendarSelection}>Aplicar</button>
+                    </div>
+                  </div>
+                )}
+              </div>
               <button className="icon-btn" onClick={() => setView(next(view))} aria-label="Próximo mês">›</button>
             </div>
           </div>
@@ -61,7 +244,13 @@ export default function StudentScreen({ tasks, setTasks, events }) {
           </div>
           <div className="cal-grid">
             {grid.map((cell, i) =>
-            <div key={i} className={"cal-cell" + (cell.outside ? " outside" : "") + (cell.isToday ? " is-today" : "")}>
+            <button
+              key={i}
+              type="button"
+              className={"cal-cell" + (cell.outside ? " outside" : "") + (cell.isToday ? " is-today" : "") + (cell.isSelected ? " is-selected" : "")}
+              onClick={() => selectCalendarDay(cell)}
+              aria-label={`Selecionar ${cell.iso}`}
+            >
                 <span className="cal-day">{cell.day}</span>
                 <div className="cal-events">
                   {cell.events.slice(0, 2).map((e) =>
@@ -72,9 +261,47 @@ export default function StudentScreen({ tasks, setTasks, events }) {
                 )}
                   {cell.events.length > 2 && <span className="cal-more">+{cell.events.length - 2}</span>}
                 </div>
-              </div>
+              </button>
             )}
           </div>
+
+          <form className="calendar-new" onSubmit={(e) => { e.preventDefault(); addCalendarItem(); }}>
+            <div className="calendar-new-head">
+              <div>
+                <div className="card-title">Adicionar no calendário</div>
+                <div className="card-sub">{fmtDate(selectedDate)}</div>
+              </div>
+              <div className="event-type-group">
+                {EVENT_TYPES.map((type) => (
+                  <button
+                    key={type.id}
+                    type="button"
+                    className={"event-type-btn evt-" + type.id + (calendarType === type.id ? " is-active" : "")}
+                    onClick={() => setCalendarType(type.id)}
+                  >
+                    <span className={"lg-sq evt-" + type.id}></span>
+                    {type.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="calendar-new-fields">
+              <input
+                className="input"
+                placeholder="Titulo do item"
+                value={calendarTitle}
+                onChange={(e) => setCalendarTitle(e.target.value)}
+              />
+              <input
+                type="time"
+                className="input input-date"
+                value={calendarTime}
+                onChange={(e) => setCalendarTime(e.target.value)}
+              />
+              <button className="btn btn-primary" type="submit" disabled={!calendarTitle.trim()}>Adicionar</button>
+            </div>
+            {calendarError && <div className="form-error">{calendarError}</div>}
+          </form>
 
           <div className="cal-legend">
             <span className="legend-item"><span className="lg-sq evt-exam"></span> Prova</span>
@@ -116,6 +343,7 @@ export default function StudentScreen({ tasks, setTasks, events }) {
             
             <button className="btn btn-primary" type="submit">Adicionar</button>
           </form>
+          {taskError && <div className="form-error">{taskError}</div>}
 
           <ul className="todo-list">
             {filtered.map((t) =>
@@ -126,13 +354,13 @@ export default function StudentScreen({ tasks, setTasks, events }) {
                 <div className="todo-body">
                   <div className="todo-title">{t.title}</div>
                   <div className="todo-meta">
-                    <span className="mono">{fmtDate(t.due)}</span>
-                    <span className="sep">·</span>
+                    {t.due && <span className="mono">{fmtDate(t.due)}</span>}
+                    {t.due && <span className="sep">·</span>}
                     <span>{t.tag}</span>
                     {t.source === "jarvis" && <span className="jarvis-tag">criado pelo Jarvis</span>}
                   </div>
                 </div>
-                <button className="row-btn danger" onClick={() => setTasks((all) => all.filter((x) => x.id !== t.id))}>Excluir</button>
+                <button className="row-btn danger" onClick={() => removeTask(t.id)}>Excluir</button>
               </li>
             )}
             {filtered.length === 0 && <li className="empty">Nada por aqui ainda.</li>}
@@ -149,7 +377,18 @@ function monthLabel(y, m) {
 function prev(v) {const m = v.m - 1;if (m < 0) return { y: v.y - 1, m: 11 };return { y: v.y, m };}
 function next(v) {const m = v.m + 1;if (m > 11) return { y: v.y + 1, m: 0 };return { y: v.y, m };}
 
-function buildMonthGrid(y, m, events) {
+function monthOptions() {
+  return Array.from({ length: 12 }, (_, value) => ({
+    value,
+    label: new Date(2026, value, 1).toLocaleDateString("pt-BR", { month: "short" }),
+  }));
+}
+
+function yearOptions(currentYear) {
+  return Array.from({ length: 11 }, (_, index) => currentYear - 5 + index);
+}
+
+function buildMonthGrid(y, m, events, selectedDate) {
   const first = new Date(y, m, 1);
   // make week start on Monday
   const offset = (first.getDay() + 6) % 7;
@@ -164,6 +403,8 @@ function buildMonthGrid(y, m, events) {
       day: d.getDate(),
       outside: d.getMonth() !== m,
       isToday: iso === todayStr,
+      isSelected: iso === selectedDate,
+      iso,
       events: events.filter((e) => e.date === iso)
     });
   }

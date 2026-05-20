@@ -48,7 +48,6 @@ export default function DocsScreen({ docs, setDocs, currentUser, apiBaseUrl, rel
     }
   }
 
-  const rawCount = docs.filter((d) => d.source === "raw").length;
   const uploadCount = docs.filter((d) => d.source === "upload").length;
 
   return (
@@ -57,11 +56,10 @@ export default function DocsScreen({ docs, setDocs, currentUser, apiBaseUrl, rel
         <div>
           <div className="eyebrow"><span className="dot" /> base de conhecimento</div>
           <h2 className="page-title">Documentos</h2>
-          <p className="page-sub">PDFs de data/raw ficam disponíveis aqui para consulta e abertura rápida em outra aba.</p>
+          <p className="page-sub">PDFs disponíveis para consulta pelo Jarvis e abertura rápida em outra aba.</p>
         </div>
         <div className="docs-stats">
           <div className="stat"><div className="stat-n">{docs.length}</div><div className="stat-l">Documentos</div></div>
-          <div className="stat"><div className="stat-n">{rawCount}</div><div className="stat-l">Em data/raw</div></div>
           <div className="stat"><div className="stat-n">{uploadCount}</div><div className="stat-l">Enviados</div></div>
         </div>
       </header>
@@ -100,8 +98,8 @@ export default function DocsScreen({ docs, setDocs, currentUser, apiBaseUrl, rel
                   <path d="M14 3v5h5"></path>
                 </svg>
               </span>
-              <div>
-                <div className="doc-name">{d.name}</div>
+              <div className="doc-text">
+                <div className="doc-name" title={d.name}>{d.name}</div>
                 <div className="doc-meta">{d.size || formatSize(d.sizeBytes || d.tamanho_bytes)} · {d.status_processamento || "pendente"}</div>
               </div>
             </div>

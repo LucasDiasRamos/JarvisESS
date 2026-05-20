@@ -46,6 +46,7 @@ CREATE TABLE IF NOT EXISTS tarefas (
   descricao TEXT,
   concluida INTEGER DEFAULT 0,
   data_limite DATE,
+  origem TEXT DEFAULT 'user',
   criado_em DATETIME DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY(user_id) REFERENCES user(id)
 );
@@ -55,7 +56,9 @@ CREATE TABLE IF NOT EXISTS lembretes (
   user_id INTEGER,
   titulo TEXT NOT NULL,
   descricao TEXT,
+  tipo TEXT DEFAULT 'event',
   data_hora DATETIME NOT NULL,
+  origem TEXT DEFAULT 'user',
   criado_em DATETIME DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY(user_id) REFERENCES user(id)
 );

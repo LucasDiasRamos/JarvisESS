@@ -2,7 +2,8 @@ const conversaRepository = require("../repositories/conversaRepository");
 
 async function criar(req, res, next) {
   try {
-    const { usuario_id, titulo } = req.body;
+    const { titulo } = req.body;
+    const usuario_id = req.body?.usuario_id || req.body?.user_id;
 
     const conversa = await conversaRepository.criarConversa({ usuario_id, titulo });
     return res.status(201).json(conversa);
@@ -13,7 +14,8 @@ async function criar(req, res, next) {
 
 async function listarPorUsuario(req, res, next) {
   try {
-    const conversas = await conversaRepository.listarConversasPorUsuario(req.params.usuario_id);
+    const userId = req.params.usuario_id || req.params.user_id;
+    const conversas = await conversaRepository.listarConversasPorUsuario(userId);
     return res.json(conversas);
   } catch (error) {
     return next(error);

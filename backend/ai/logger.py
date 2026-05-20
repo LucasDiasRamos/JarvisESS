@@ -1,9 +1,10 @@
 import json
 import logging
+import os
 from datetime import datetime
 from pathlib import Path
 
-LOG_DIR = Path(__file__).parent.parent.parent / "logs"
+LOG_DIR = Path(os.getenv("JARVIS_LOG_DIR") or Path(__file__).parent.parent.parent / "logs")
 LOG_DIR.mkdir(exist_ok=True)
 
 # Log em formato legível
@@ -14,26 +15,99 @@ logging.basicConfig(
     datefmt="%Y-%m-%d %H:%M:%S"
 )
 
+
+def data_formatada():
+    return datetime.now().isoformat(timespec="seconds")
+
+
+def _append_jsonl(nome_arquivo: str, entrada: dict):
+    with open(LOG_DIR / nome_arquivo, "a", encoding="utf-8") as arquivo:
+        arquivo.write(json.dumps(entrada, ensure_ascii=False, default=str) + "\n")
+
+
 def registrar_chamada_tool(
-    tool: str,
+    ferramenta: str,
     argumentos: dict,
     resultado: dict,
     user_id: int = None
 ):
     """Registra uma chamada de tool nos logs."""
     entrada = {
-        "timestamp": datetime.now().isoformat(),
-        "userid": user_id,
-        "tool": tool,
-        "argumentos": argumentos,
-        "resultado": resultado,
-        "erro": resultado.get("erro", False)
+        "data_hora": data_formatada(),
+        "user_id": user_id,
+        "ferramenta": ferramenta,
+        "entrada": argumentos,
+        "saida": resultado,
+        "sucesso": not bool(resultado.get("erro", False))
     }
-    
-    # Log estruturado em JSON
-    with open(LOG_DIR / "tools.jsonl", "a", encoding="utf-8") as f:
-        f.write(json.dumps(entrada, ensure_ascii=False) + "\n")
-        
+
+    _append_jsonl("tools.jsonl", entrada)
+
     # Log legível para debug
-    status = "ERRO" if entrada["erro"] else "OK"
-    logging.info(f"[{status}] tool={tool} user={user_id} args={argumentos}")
+    status = "OK" if entrada["sucesso"] else "ERRO"
+    logging.info(f"[{status}] ferramenta={ferramenta} user_id={user_id} entrada={argumentos}")
+
+
+def registrar_rag(
+    pergunta: str,
+    documentos_recuperados: list,
+    chunks_usados: list,
+    resposta_gerada: str = "",
+    score_relevancia=None
+):
+    """Registra uso do RAG nos logs."""
+    entrada = {
+        "data_hora": data_formatada(),
+        "pergunta": pergunta,
+        "documentos_recuperados": documentos_recuperados,
+        "chunks_usados": chunks_usados,
+        "resposta_gerada": resposta_gerada,
+        "score_relevancia": score_relevancia
+    }
+
+    _append_jsonl("rag.jsonl", entrada)
+    logging.info(
+        "[RAG] pergunta=%r documentos=%s chunks=%s score=%s",
+        pergunta,
+        len(documentos_recuperados or []),
+        len(chunks_usados or []),
+        score_relevancia,
+    )
+
+
+def registrar_agenda(acao: str, entrada, saida):
+    entrada_log = {
+        "data_hora": data_formatada(),
+        "acao": acao,
+        "entrada": entrada,
+        "saida": saida,
+    }
+
+    _append_jsonl("agenda.jsonl", entrada_log)
+    logging.info("[AGENDA] acao=%s entrada=%s", acao, entrada)
+
+
+def registrar_tarefa(acao: str, tarefa, status: str, sucesso: bool):
+    entrada_log = {
+        "data_hora": data_formatada(),
+        "acao": acao,
+        "tarefa": tarefa,
+        "status": status,
+        "sucesso": bool(sucesso),
+    }
+
+    _append_jsonl("tarefas.jsonl", entrada_log)
+    logging.info("[TAREFA] acao=%s status=%s sucesso=%s", acao, status, sucesso)
+
+
+def registrar_erro(tipo_erro: str, mensagem: str, pergunta_usuario: str = "", possivel_causa: str = ""):
+    entrada_log = {
+        "data_hora": data_formatada(),
+        "tipo_erro": tipo_erro,
+        "mensagem": mensagem,
+        "pergunta_usuario": pergunta_usuario,
+        "possivel_causa": possivel_causa,
+    }
+
+    _append_jsonl("erros.jsonl", entrada_log)
+    logging.error("[ERRO] tipo=%s mensagem=%s", tipo_erro, mensagem)

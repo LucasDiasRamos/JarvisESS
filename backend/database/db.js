@@ -29,6 +29,8 @@ function initDatabase() {
       }
 
       ensureArquivoColumns(db)
+        .then(() => ensureTarefaColumns(db))
+        .then(() => ensureLembreteColumns(db))
         .then(() => resolve(db))
         .catch(reject);
     });
@@ -63,6 +65,28 @@ async function ensureArquivoColumns(db) {
     if (!names.has(name)) {
       await run(`ALTER TABLE arquivos_pdf ADD COLUMN ${name} ${definition}`);
     }
+  }
+}
+
+async function ensureTarefaColumns(db) {
+  const columns = await tableInfo(db, "tarefas");
+  const names = new Set(columns.map((column) => column.name));
+
+  if (!names.has("origem")) {
+    await run("ALTER TABLE tarefas ADD COLUMN origem TEXT DEFAULT 'user'");
+  }
+}
+
+async function ensureLembreteColumns(db) {
+  const columns = await tableInfo(db, "lembretes");
+  const names = new Set(columns.map((column) => column.name));
+
+  if (!names.has("tipo")) {
+    await run("ALTER TABLE lembretes ADD COLUMN tipo TEXT DEFAULT 'event'");
+  }
+
+  if (!names.has("origem")) {
+    await run("ALTER TABLE lembretes ADD COLUMN origem TEXT DEFAULT 'user'");
   }
 }
 

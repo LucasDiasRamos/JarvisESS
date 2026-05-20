@@ -1,6 +1,7 @@
 const fs = require("fs");
 const path = require("path");
 const { spawn } = require("child_process");
+const { registrarErro } = require("../services/logService");
 
 const PROJECT_ROOT = path.resolve(__dirname, "..", "..");
 const LOCAL_PYTHON = path.join(PROJECT_ROOT, ".venv", "bin", "python");
@@ -31,6 +32,12 @@ function conversarComJarvis(req, res) {
   const timeout = setTimeout(() => {
     finished = true;
     child.kill("SIGTERM");
+    registrarErro({
+      tipo_erro: "timeout_chat",
+      mensagem: "Tempo limite ao aguardar resposta do Jarvis.",
+      pergunta_usuario: texto,
+      possivel_causa: "LLM lenta, processo Python travado ou tool demorando demais",
+    });
     return res.status(504).json({
       erro: "Tempo limite ao aguardar resposta do Jarvis.",
       resposta: "Demorei demais para responder. Tente novamente em alguns instantes.",
@@ -49,6 +56,12 @@ function conversarComJarvis(req, res) {
     if (finished) return;
     finished = true;
     clearTimeout(timeout);
+    registrarErro({
+      tipo_erro: "processo_python",
+      mensagem: error.message,
+      pergunta_usuario: texto,
+      possivel_causa: "Python nao encontrado, dependencia ausente ou falha ao iniciar subprocesso",
+    });
     return res.status(500).json({
       erro: "Nao foi possivel iniciar o processo Python do Jarvis.",
       detalhe: error.message,
@@ -65,6 +78,12 @@ function conversarComJarvis(req, res) {
       .find((item) => item.startsWith(RESPONSE_PREFIX));
 
     if (!line) {
+      registrarErro({
+        tipo_erro: "resposta_python_invalida",
+        mensagem: stderr || stdout || `Processo finalizou com codigo ${code}.`,
+        pergunta_usuario: texto,
+        possivel_causa: "excecao no Python antes de imprimir o prefixo de resposta",
+      });
       return res.status(502).json({
         erro: "Resposta invalida do processo Python do Jarvis.",
         detalhe: stderr || stdout || `Processo finalizou com codigo ${code}.`,
@@ -75,6 +94,12 @@ function conversarComJarvis(req, res) {
       const payload = JSON.parse(line.slice(RESPONSE_PREFIX.length));
       return res.json(payload);
     } catch (error) {
+      registrarErro({
+        tipo_erro: "json_python_invalido",
+        mensagem: error.message,
+        pergunta_usuario: texto,
+        possivel_causa: "payload do Python nao estava em JSON valido",
+      });
       return res.status(502).json({
         erro: "Nao foi possivel interpretar a resposta do Jarvis.",
         detalhe: error.message,

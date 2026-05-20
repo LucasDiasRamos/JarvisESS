@@ -4,6 +4,7 @@ const path = require("path");
 const { spawn } = require("child_process");
 
 const arquivoRepository = require("../repositories/arquivoRepository");
+const { registrarUploadDocumento } = require("./logService");
 
 const projectRoot = path.join(__dirname, "..", "..");
 const rawDir = path.join(projectRoot, "data", "raw");
@@ -46,6 +47,18 @@ function uniquePdfPath(filename) {
 function mdPathForPdf(pdfPath) {
   fs.mkdirSync(processedDir, { recursive: true });
   return path.join(processedDir, `${path.basename(pdfPath, path.extname(pdfPath))}.md`);
+}
+
+function countMarkdownChunks(mdPath) {
+  if (!mdPath || !fs.existsSync(mdPath)) return 0;
+
+  const text = fs.readFileSync(mdPath, "utf8").trim();
+  if (!text) return 0;
+
+  const chunkSize = 500;
+  const chunkOverlap = 50;
+  const step = chunkSize - chunkOverlap;
+  return Math.max(1, Math.ceil(Math.max(text.length - chunkOverlap, 1) / step));
 }
 
 function convertPdfToMarkdown(pdfPath) {
@@ -103,22 +116,42 @@ async function registerPdf({ userId = null, pdfPath, source }) {
   });
 
   if (existing?.status_processamento === "convertido" && existing.caminho_md) {
+    registrarUploadDocumento({
+      arquivo: existing.nome_arquivo,
+      status: existing.status_processamento,
+      quantidade_chunks: countMarkdownChunks(path.join(projectRoot, existing.caminho_md)),
+      embedding_gerado: false,
+    });
     return existing;
   }
 
   try {
     const converted = await convertPdfToMarkdown(pdfPath);
-    return arquivoRepository.atualizarArquivo(arquivo.id, {
+    const updated = await arquivoRepository.atualizarArquivo(arquivo.id, {
       caminho_md: toRelativePath(converted.mdPath),
       status_processamento: "convertido",
       paginas: converted.pages || arquivo.paginas || null,
       tamanho_bytes: stats.size,
     });
+    registrarUploadDocumento({
+      arquivo: updated.nome_arquivo,
+      status: updated.status_processamento,
+      quantidade_chunks: countMarkdownChunks(converted.mdPath),
+      embedding_gerado: false,
+    });
+    return updated;
   } catch (error) {
-    return arquivoRepository.atualizarArquivo(arquivo.id, {
+    const updated = await arquivoRepository.atualizarArquivo(arquivo.id, {
       status_processamento: "erro",
       tamanho_bytes: stats.size,
     });
+    registrarUploadDocumento({
+      arquivo: updated.nome_arquivo,
+      status: updated.status_processamento,
+      quantidade_chunks: 0,
+      embedding_gerado: false,
+    });
+    return updated;
   }
 }
 

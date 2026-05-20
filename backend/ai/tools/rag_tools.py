@@ -26,7 +26,7 @@ def buscar_material_rag(query: str, n_results: int = 3):
             }
         }
         
-    context = build_context(query, n_results)
+    context = build_context(query, n_results, chunks=chunks)
     
     return {
         "error": False,

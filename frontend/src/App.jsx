@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 import ChatScreen from "./ChatScreen";
 import DocsScreen from "./DocsScreen";
+import LogsScreen from "./LogsScreen";
 import StudentScreen from "./StudentScreen";
-import { seedDocs, seedEvents, seedTasks } from "./data";
+import { seedDocs } from "./data";
 
-const STORAGE_KEY = "jarvis-edu-state-vite";
+const STORAGE_KEY = "jarvis-edu-state-vite-db";
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3001";
 
 function initialsFromUser(user) {
@@ -23,19 +24,39 @@ function TopNav({ screen, setScreen, currentUser }) {
     { id: "chat", label: "Chat" },
     { id: "docs", label: "Documentos" },
     { id: "student", label: "Area do aluno" },
+    { id: "logs", label: "Logs" },
   ];
+  const isChat = screen === "chat";
+
+  function handleBrandClick() {
+    if (isChat) {
+      window.dispatchEvent(new CustomEvent("jarvis:open-chat-drawer"));
+      return;
+    }
+
+    setScreen("landing");
+  }
 
   return (
     <header className="topnav">
-      <button className="brand" onClick={() => setScreen("landing")} aria-label="Jarvis - inicio">
+      <button
+        className={"brand" + (isChat ? " chat-menu-brand" : "")}
+        onClick={handleBrandClick}
+        aria-label={isChat ? "Abrir conversas" : "Jarvis - inicio"}
+      >
         <span className="brand-mark" aria-hidden="true">
-          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.4">
+          <svg className="brand-orbit" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.4">
             <circle cx="12" cy="12" r="9.2" />
             <circle cx="12" cy="12" r="3.2" />
             <line x1="12" y1="2.8" x2="12" y2="6.4" />
             <line x1="12" y1="17.6" x2="12" y2="21.2" />
             <line x1="2.8" y1="12" x2="6.4" y2="12" />
             <line x1="17.6" y1="12" x2="21.2" y2="12" />
+          </svg>
+          <svg className="brand-menu" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.8">
+            <line x1="4.5" y1="7" x2="19.5" y2="7" />
+            <line x1="4.5" y1="12" x2="19.5" y2="12" />
+            <line x1="4.5" y1="17" x2="19.5" y2="17" />
           </svg>
         </span>
         <span className="brand-name">Jarvis</span>
@@ -133,8 +154,8 @@ function Landing({ setScreen }) {
 function loadState() {
   const fallback = {
     docs: [...seedDocs],
-    tasks: [...seedTasks],
-    events: [...seedEvents],
+    tasks: [],
+    events: [],
   };
 
   try {
@@ -153,7 +174,7 @@ function loadState() {
 }
 
 function screenLabel(screen) {
-  return ({ landing: "01 Landing", chat: "02 Chat", docs: "03 Documents", student: "04 Student Area" })[screen] || screen;
+  return ({ landing: "01 Landing", chat: "02 Chat", docs: "03 Documents", student: "04 Student Area", logs: "05 Logs" })[screen] || screen;
 }
 
 export default function App() {
@@ -178,20 +199,91 @@ export default function App() {
     }
   }
 
+  async function loadCurrentUserFromDatabase() {
+    try {
+      const response = await fetch(`${API_BASE_URL}/usuarios`);
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+      const users = await response.json();
+      if (Array.isArray(users) && users.length > 0) {
+        setCurrentUser(users[0]);
+        return users[0];
+      }
+
+      setCurrentUser(null);
+      return null;
+    } catch (error) {
+      console.warn("Nao foi possivel carregar o usuario atual", error);
+      setCurrentUser(null);
+      return null;
+    }
+  }
+
+  function mapTask(row) {
+    return {
+      id: row.id,
+      title: row.titulo,
+      due: row.data_limite || "",
+      done: Boolean(row.concluida),
+      source: row.origem || row.source || "user",
+      tag: row.descricao || "Tarefa",
+    };
+  }
+
+  function mapReminder(row) {
+    return {
+      id: row.id,
+      date: String(row.data_hora || "").slice(0, 10),
+      title: row.titulo,
+      kind: row.tipo || row.kind || "event",
+      source: row.origem || row.source || "user",
+      descricao: row.descricao || "",
+    };
+  }
+
+  async function loadStudentData(user = currentUser) {
+    const userId = user?.id || user?.usuario_id;
+    if (!userId) {
+      setTasks([]);
+      setEvents([]);
+      return;
+    }
+
+    try {
+      const [tasksResponse, remindersResponse] = await Promise.all([
+        fetch(`${API_BASE_URL}/tarefas/${userId}`),
+        fetch(`${API_BASE_URL}/lembretes/${userId}`),
+      ]);
+
+      if (!tasksResponse.ok) throw new Error(`tarefas HTTP ${tasksResponse.status}`);
+      if (!remindersResponse.ok) throw new Error(`lembretes HTTP ${remindersResponse.status}`);
+
+      const [taskRows, reminderRows] = await Promise.all([
+        tasksResponse.json(),
+        remindersResponse.json(),
+      ]);
+
+      setTasks(Array.isArray(taskRows) ? taskRows.map(mapTask) : []);
+      setEvents(Array.isArray(reminderRows) ? reminderRows.map(mapReminder) : []);
+    } catch (error) {
+      console.warn("Nao foi possivel carregar area do aluno", error);
+      setTasks([]);
+      setEvents([]);
+    }
+  }
+
   useEffect(() => {
     let ignore = false;
 
     async function loadCurrentUser() {
-      try {
-        const response = await fetch(`${API_BASE_URL}/usuarios`);
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const user = await loadCurrentUserFromDatabase();
+      if (ignore) return;
 
-        const users = await response.json();
-        if (!ignore && Array.isArray(users) && users.length > 0) {
-          setCurrentUser(users[0]);
-        }
-      } catch (error) {
-        console.warn("Nao foi possivel carregar o usuario atual", error);
+      if (user) {
+        await loadStudentData(user);
+      } else {
+        setTasks([]);
+        setEvents([]);
       }
     }
 
@@ -205,6 +297,28 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ docs, tasks, events }));
   }, [docs, tasks, events]);
+
+  useEffect(() => {
+    let ignore = false;
+
+    async function refreshActiveScreen() {
+      const user = currentUser || await loadCurrentUserFromDatabase();
+      if (ignore) return;
+
+      if (screen === "docs") {
+        await loadDocsFromDatabase();
+      }
+
+      if (screen === "student") {
+        await loadStudentData(user);
+      }
+    }
+
+    refreshActiveScreen();
+    return () => {
+      ignore = true;
+    };
+  }, [screen]);
 
   const addTask = (task) => setTasks((all) => [task, ...all]);
   const addEvent = (event) => setEvents((all) => [event, ...all]);
@@ -231,7 +345,17 @@ export default function App() {
           reloadDocs={loadDocsFromDatabase}
         />
       )}
-      {screen === "student" && <StudentScreen tasks={tasks} setTasks={setTasks} events={events} />}
+      {screen === "student" && (
+        <StudentScreen
+          tasks={tasks}
+          setTasks={setTasks}
+          events={events}
+          currentUser={currentUser}
+          apiBaseUrl={API_BASE_URL}
+          reloadStudentData={loadStudentData}
+        />
+      )}
+      {screen === "logs" && <LogsScreen apiBaseUrl={API_BASE_URL} />}
     </div>
   );
 }
