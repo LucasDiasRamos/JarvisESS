@@ -151,6 +151,7 @@ em { font-family: var(--font-serif); font-style: italic; font-weight: 400; }
   color: var(--ink-soft); font-size: 13.5px; transition: all .15s;
 }
 .empty-card:hover { border-color: var(--ink); color: var(--ink); transform: translateY(-1px); }
+.empty-card:disabled { opacity: 0.55; cursor: not-allowed; transform: none; }
 .empty-card-arrow { color: var(--muted-2); font-family: var(--font-mono); font-size: 14px; flex-shrink: 0; }
 .empty-card:hover .empty-card-arrow { color: var(--accent); }
 @media (max-width: 640px) {
@@ -197,12 +198,14 @@ em { font-family: var(--font-serif); font-style: italic; font-weight: 400; }
 .chat-suggest { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
 .suggest { font-size: 13px; padding: 7px 14px; border-radius: 999px; background: var(--surface); border: 1px solid var(--line); color: var(--muted); transition: all .15s; }
 .suggest:hover { color: var(--ink); border-color: var(--ink); }
+.suggest:disabled { opacity: 0.55; cursor: not-allowed; }
 
 .composer { display: flex; align-items: flex-end; gap: 10px; margin-top: 14px; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 10px 10px 10px 14px; transition: border-color .15s; }
 .composer:focus-within { border-color: var(--ink); }
 .composer-attach { background: var(--bg); border: 1px solid var(--line); width: 32px; height: 32px; border-radius: 50%; color: var(--muted); font-size: 18px; line-height: 1; }
 .composer-input { flex: 1; resize: none; border: 0; outline: 0; background: transparent; font: inherit; min-height: 26px; max-height: 160px; padding: 6px 0; color: var(--ink); }
 .composer-input::placeholder { color: var(--muted-2); }
+.composer-input:disabled { cursor: wait; }
 .composer-send { padding: 9px 18px; }
 
 /* ---------- Page head (docs/student) ---------- */

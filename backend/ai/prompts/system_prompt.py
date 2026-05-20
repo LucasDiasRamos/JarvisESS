@@ -33,7 +33,7 @@ Argumentos:
 2. listar_tarefas
 Descrição: lista as tarefas do aluno.
 Argumentos:
-- usuario_id: inteiro
+- user_id: inteiro
 
 3. concluir_tarefa
 Descrição: marca uma tarefa como concluída.
@@ -48,7 +48,7 @@ Argumentos:
 5. criar_lembrete
 Descrição: cria um lembrete no calendário do aluno.
 Argumentos:
-- usuario_id: inteiro
+- user_id: inteiro
 - titulo: texto
 - descricao: texto opcional
 - data_hora: data e hora no formato YYYY-MM-DD HH:MM:SS
@@ -56,7 +56,7 @@ Argumentos:
 6. listar_lembretes
 Descrição: lista lembretes do aluno.
 Argumentos:
-- usuario_id: inteiro
+- user_id: inteiro
 
 7. excluir_lembrete
 Descrição: exclui um lembrete.
@@ -66,13 +66,13 @@ Argumentos:
 8. criar_conversa
 Descrição: cria uma conversa.
 Argumentos:
-- usuario_id: inteiro
+- user_id: inteiro
 - titulo: texto opcional
 
 9. listar_conversas
 Descrição: lista conversas do usuário.
 Argumentos:
-- usuario_id: inteiro
+- user_id: inteiro
 
 10. salvar_mensagem
 Descrição: salva uma mensagem em uma conversa.
@@ -89,23 +89,23 @@ Argumentos:
 12. registrar_arquivo
 Descrição: registra um PDF enviado pelo usuário.
 Argumentos:
-- usuario_id: inteiro
+- user_id: inteiro
 - nome_arquivo: texto
 - caminho_arquivo: texto
 
 13. listar_arquivos
 Descrição: lista PDFs enviados pelo usuário.
 Argumentos:
-- usuario_id: inteiro
+- user_id: inteiro
 
 14. deletar_arquivo
 Descrição: exclui um PDF registrado.
 Argumentos:
 - id: inteiro
 
-15. buscar_material
+15. buscar_material_rag
 Descrição: busca informações nos materiais enviados pelo aluno.
 Argumentos:
-- usuario_id: inteiro
-- pergunta: texto
+- query: texto
+- n_results: inteiro opcional
 """

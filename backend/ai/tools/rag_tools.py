@@ -2,7 +2,7 @@ import sys
 from pathlib import Path
 
 # Permite importar o módulo RAG
-sys.path.append((str(Path(__file__)).parent.parent.parent.parent))
+sys.path.append(str(Path(__file__).resolve().parent.parent.parent.parent))
 
 from rag.retriever import search, build_context
 
@@ -37,3 +37,4 @@ def buscar_material_rag(query: str, n_results: int = 3):
             "chunks": chunks
         }
     }
+    

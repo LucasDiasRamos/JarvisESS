@@ -8,6 +8,7 @@ const conversaRoutes = require("./routes/conversaRoutes");
 const mensagemRoutes = require("./routes/mensagemRoutes");
 const tarefaRoutes = require("./routes/tarefaRoutes");
 const lembreteRoutes = require("./routes/lembreteRoutes");
+const jarvisRoutes = require("./routes/jarvisRoutes");
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -26,6 +27,7 @@ app.use(conversaRoutes);
 app.use(mensagemRoutes);
 app.use(tarefaRoutes);
 app.use(lembreteRoutes);
+app.use(jarvisRoutes);
 
 app.use((req, res) => {
   res.status(404).json({ erro: "Rota nao encontrada." });

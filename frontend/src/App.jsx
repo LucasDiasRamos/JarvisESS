@@ -213,7 +213,15 @@ export default function App() {
     <div data-screen-label={screenLabel(screen)}>
       <TopNav screen={screen} setScreen={setScreen} currentUser={currentUser} />
       {screen === "landing" && <Landing setScreen={setScreen} />}
-      {screen === "chat" && <ChatScreen docs={docs} addTask={addTask} addEvent={addEvent} currentUser={currentUser} />}
+      {screen === "chat" && (
+        <ChatScreen
+          docs={docs}
+          addTask={addTask}
+          addEvent={addEvent}
+          currentUser={currentUser}
+          apiBaseUrl={API_BASE_URL}
+        />
+      )}
       {screen === "docs" && (
         <DocsScreen
           docs={docs}

@@ -1,4 +1,5 @@
 import json
+import re
 
 from backend.ai.tools.tarefa_tools import (
     criar_tarefa,
@@ -53,8 +54,14 @@ TOOLS = {
 }
 
 def interpretar_resposta_llm(resposta_texto: str) -> dict:
+    texto = resposta_texto.strip()
+
+    bloco_json = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", texto, re.DOTALL)
+    if bloco_json:
+        texto = bloco_json.group(1)
+
     try:
-        return json.loads(resposta_texto)
+        return json.loads(texto)
     except json.JSONDecodeError:
         return {
             "usar_tool": False,

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { fmtDate, uid } from "./helpers";
+import { uid } from "./helpers";
 
 function greetingForNow() {
   const h = new Date().getHours();
@@ -22,7 +22,7 @@ const RECENT_CONVERSATIONS = [
   { id: "c5", title: "Fichamento — Sociologia", when: "21/04" },
 ];
 
-export default function ChatScreen({ docs, addTask, addEvent, currentUser }) {
+export default function ChatScreen({ docs, currentUser, apiBaseUrl }) {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [typing, setTyping] = useState(false);
@@ -49,65 +49,45 @@ export default function ChatScreen({ docs, addTask, addEvent, currentUser }) {
     "Liste 5 questões de revisão sobre microeconomia",
   ];
 
-  function respondTo(text) {
-    const t = text.toLowerCase();
-    if (t.includes("lembre") || t.includes("lembrete") || t.includes("agend")) {
-      const dueMatch = t.match(/(seg|ter|qua|qui|sex|sáb|sab|dom)/);
-      const dueMap = {
-        seg: "2026-05-18", ter: "2026-05-19", qua: "2026-05-20",
-        qui: "2026-05-21", sex: "2026-05-22", sab: "2026-05-23", "sáb": "2026-05-23", dom: "2026-05-24",
-      };
-      const due = (dueMatch && dueMap[dueMatch[1]]) || "2026-05-16";
-      const title = text.replace(/.*lembr\w+\s*(de|para)?\s*/i, "").trim() || "Revisão de estudos";
-      const cleanTitle = title.charAt(0).toUpperCase() + title.slice(1);
-      addEvent({ id: uid(), date: due, title: cleanTitle, kind: "deadline", source: "jarvis" });
-      addTask({ id: uid(), title: cleanTitle, due, done: false, source: "jarvis", tag: "Pelo Jarvis" });
-      return {
-        text: `Lembrete criado para ${fmtDate(due)}. Também adicionei como tarefa na sua área. Quer que eu mande uma notificação 1 dia antes?`,
-        action: { kind: "created", label: `${fmtDate(due)} · ${cleanTitle}` },
-      };
-    }
-    if (t.includes("resuma") || t.includes("resumo") || t.includes("cormen") || t.includes("capítulo")) {
-      return {
-        text: "Resumo do capítulo 3 do Cormen — notação assintótica:\n\n1. Define O, Ω e Θ como ferramentas para descrever o comportamento de funções de custo.\n2. Mostra que essas notações ignoram constantes e termos de menor ordem.\n3. Apresenta exemplos com 2n² + 3n e demonstrações formais por limite.\n\nPosso converter em 10 cards de revisão?",
-        sources: ["Algoritmos_Cormen_cap03.pdf · p.43–58"],
-      };
-    }
-    if (t.includes("derivada") || t.includes("cálculo") || t.includes("calculo")) {
-      return {
-        text: "Da aula 07 de Cálculo I (derivadas): regras de soma e produto, derivada do quociente, regra da cadeia e exemplos com funções compostas. Existem 12 exercícios marcados no PDF — quer que eu monte uma lista priorizada para a prova de 15/05?",
-        sources: ["Calculo_I_aula_07_derivadas.pdf · p.4–11"],
-      };
-    }
-    if (t.includes("micro") || t.includes("economia") || t.includes("varian")) {
-      return {
-        text: "Tópico ainda em processamento — Microeconomia_Varian_cap05 está indexando (≈70%). Posso te avisar quando terminar e já gerar as 5 questões.",
-        sources: ["Microeconomia_Varian_cap05.pdf"],
-      };
-    }
-    if (t.includes("tarefa") || t.includes("todo") || t.includes("to-do") || t.includes("to do")) {
-      const title = "Estudar " + (text.split(/tarefa|todo/i).pop() || "tópico").trim() || "Estudar tópico";
-      addTask({ id: uid(), title, due: "2026-05-20", done: false, source: "jarvis", tag: "Pelo Jarvis" });
-      return { text: `Tarefa criada na sua área: “${title}”. Estimei 20/05 como prazo — quer mudar?`, action: { kind: "created", label: title } };
-    }
-    return {
-      text:
-        "Posso ajudar com isso. Quer que eu busque nas referências indexadas (4 PDFs) ou que eu trate isso como uma anotação para mais tarde?",
-    };
-  }
-
-  function send(value) {
+  async function send(value) {
     const text = (value ?? input).trim();
-    if (!text) return;
+    if (!text || typing) return;
+
     const userMsg = { id: uid(), role: "user", text };
     setMessages((m) => [...m, userMsg]);
     setInput("");
     setTyping(true);
-    setTimeout(() => {
-      const reply = respondTo(text);
-      setMessages((m) => [...m, { id: uid(), role: "jarvis", ...reply }]);
+
+    try {
+      const response = await fetch(`${apiBaseUrl}/jarvis/chat`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          message: text,
+          user_id: currentUser?.id || currentUser?.usuario_id || 1,
+        }),
+      });
+
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(data?.resposta || data?.erro || `HTTP ${response.status}`);
+      }
+
+      const replyText = data?.resposta || "Não recebi uma resposta do Jarvis.";
+      setMessages((m) => [...m, { id: uid(), role: "jarvis", text: replyText }]);
+    } catch (error) {
+      setMessages((m) => [
+        ...m,
+        {
+          id: uid(),
+          role: "jarvis",
+          text: `Não consegui falar com o Jarvis agora. ${error.message}`,
+        },
+      ]);
+    } finally {
       setTyping(false);
-    }, 700);
+    }
   }
 
   function newConversation() {
@@ -181,7 +161,7 @@ export default function ChatScreen({ docs, addTask, addEvent, currentUser }) {
             <p className="empty-sub">Como posso ajudar com seus estudos hoje?</p>
             <div className="empty-suggest">
               {suggestions.map((s) => (
-                <button key={s} className="empty-card" onClick={() => send(s)}>
+                <button key={s} className="empty-card" onClick={() => send(s)} disabled={typing}>
                   <span className="empty-card-arrow">↗</span>
                   <span>{s}</span>
                 </button>
@@ -209,7 +189,7 @@ export default function ChatScreen({ docs, addTask, addEvent, currentUser }) {
         {!isEmpty && (
           <div className="chat-suggest">
             {suggestions.map((s) => (
-              <button key={s} className="suggest" onClick={() => send(s)}>{s}</button>
+              <button key={s} className="suggest" onClick={() => send(s)} disabled={typing}>{s}</button>
             ))}
           </div>
         )}
@@ -222,9 +202,10 @@ export default function ChatScreen({ docs, addTask, addEvent, currentUser }) {
             onChange={(e) => setInput(e.target.value)}
             placeholder="Pergunte algo sobre seus documentos, peça um resumo, ou diga ‘me lembre na sexta’…"
             rows={1}
+            disabled={typing}
             onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }}
           />
-          <button type="submit" className="btn btn-primary composer-send" disabled={!input.trim()}>Enviar</button>
+          <button type="submit" className="btn btn-primary composer-send" disabled={!input.trim() || typing}>Enviar</button>
         </form>
       </section>
     </main>

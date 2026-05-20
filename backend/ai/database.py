@@ -1,7 +1,8 @@
 import sqlite3
+import os
 from pathlib import Path
 
-PATH_BANCO = Path(__file__).resolve().parent.parent / "jarvis.db"
+PATH_BANCO = Path(os.getenv("DB_PATH", Path(__file__).resolve().parent.parent.parent / "data" / "jarvis.db"))
 
 def conectar():
     conexao = sqlite3.connect(PATH_BANCO)

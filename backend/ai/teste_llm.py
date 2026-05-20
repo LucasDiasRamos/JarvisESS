@@ -1,19 +1,20 @@
-from openai import OpenAI
+from backend.ai.llm_client import chamar_llm
 
 
-client = OpenAI(
-    base_url="https://llm.liaufms.org/v1/gemma-3-12b-it",
-    api_key="Cxt2ftLF7d3mHS2JdiFqB-eSDAQeZvFATPXPs02lV9A"
-)
+print("Enviando mensagem para a LLM...")
 
-resp = client.chat.completions.create(
-    model="google/gemma-3-12b-it",
-    messages=[
+try:
+    resposta = chamar_llm([
         {
             "role": "user",
-            "content": "Hi"
+            "content": "Responda apenas: teste ok"
         }
-    ],
-)
+    ])
 
-print(resp.choices[0].message.content)
+    print("Resposta da LLM:")
+    print(repr(resposta))
+
+except Exception as erro:
+    print("Erro ao chamar a LLM:")
+    print(type(erro).__name__)
+    print(erro)
