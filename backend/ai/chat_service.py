@@ -3,6 +3,7 @@ import json
 from backend.ai.llm_client import chamar_llm
 from backend.ai.tool_router import interpretar_resposta_llm, executar_tool
 from backend.ai.prompts.system_prompt import SYSTEM_PROMPT
+from backend.ai.logger import registrar_chamada_tool
 
 
 def gerar_resposta_final(mensagens, resultado_tool):
@@ -49,6 +50,7 @@ def processar_mensagem_usuario(texto_usuario: str, user_id: int = 1):
             argumentos["user_id"] = user_id
 
         resultado_tool = executar_tool(nome_tool, argumentos)
+        registrar_chamada_tool(nome_tool, argumentos, resultado_tool, user_id)
 
         resposta_final = gerar_resposta_final(mensagens, resultado_tool)
 

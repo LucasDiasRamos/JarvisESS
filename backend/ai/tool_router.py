@@ -26,7 +26,9 @@ from backend.ai.tools.arquivo_tools import (
     deletar_arquivo
 )
 
-
+from backend.ai.tools.rag_tools import (
+    buscar_material_rag
+)
 
 TOOLS = {
     "criar_tarefa": criar_tarefa,
@@ -45,7 +47,9 @@ TOOLS = {
 
     "registrar_arquivo": registrar_arquivo,
     "listar_arquivos": listar_arquivos,
-    "deletar_arquivo": deletar_arquivo
+    "deletar_arquivo": deletar_arquivo,
+    
+    "buscar_material_rag": buscar_material_rag,
 }
 
 def interpretar_resposta_llm(resposta_texto: str) -> dict:
