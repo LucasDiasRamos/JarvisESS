@@ -33,6 +33,12 @@ from backend.ai.tools.rag_tools import (
     buscar_material_rag
 )
 
+from backend.ai.tools.aprendizado_tools import (
+    gerar_exercicios,
+    iniciar_active_recall,
+    avaliar_resposta_active_recall
+)
+
 TOOLS = {
     "criar_tarefa": criar_tarefa,
     "listar_tarefas": listar_tarefas,
@@ -53,6 +59,10 @@ TOOLS = {
     "deletar_arquivo": deletar_arquivo,
     
     "buscar_material_rag": buscar_material_rag,
+    
+     "gerar_exercicios": gerar_exercicios,
+    "iniciar_active_recall": iniciar_active_recall,
+    "avaliar_resposta_active_recall": avaliar_resposta_active_recall,
 }
 
 ARGUMENT_ALIASES = {

@@ -7,7 +7,7 @@ from rag.retriever import build_context
 # Indexa os documentos do Dataset
 index_documents()
 
-# Testa uma busca
+# Testa uma busca genérica
 query = "What is dead code elimination?"
 context = build_context(query)
 print(f"\nQuery: {query}")
