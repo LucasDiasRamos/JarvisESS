@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { uid } from "./helpers";
 
+const LAST_CHAT_KEY = "jarvis:last-chat-id";
+
 function greetingForNow() {
   const h = new Date().getHours();
   if (h >= 5 && h < 12) return "Bom dia";
@@ -25,7 +27,14 @@ export default function ChatScreen({ docs, currentUser, apiBaseUrl }) {
   const userId = currentUser?.id || currentUser?.usuario_id || 1;
 
   useEffect(() => {
-    if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    const frame = window.requestAnimationFrame(() => {
+      window.scrollTo({
+        top: document.documentElement.scrollHeight,
+        behavior: "smooth",
+      });
+    });
+
+    return () => window.cancelAnimationFrame(frame);
   }, [messages, typing]);
 
   // Close drawer with Esc
@@ -45,6 +54,12 @@ export default function ChatScreen({ docs, currentUser, apiBaseUrl }) {
   useEffect(() => {
     loadConversations();
   }, [userId]);
+
+  useEffect(() => {
+    if (activeConversationId) {
+      localStorage.setItem(LAST_CHAT_KEY, String(activeConversationId));
+    }
+  }, [activeConversationId]);
 
   function mapStoredMessage(row) {
     return {
@@ -72,7 +87,16 @@ export default function ChatScreen({ docs, currentUser, apiBaseUrl }) {
       const response = await fetch(`${apiBaseUrl}/conversas/user/${userId}`);
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const rows = await response.json();
-      setConversations(Array.isArray(rows) ? rows : []);
+      const conversationRows = Array.isArray(rows) ? rows : [];
+      setConversations(conversationRows);
+
+      if (!activeConversationId && messages.length === 0) {
+        const lastId = Number(localStorage.getItem(LAST_CHAT_KEY));
+        const lastConversation = conversationRows.find((row) => row.id === lastId);
+        if (lastConversation) {
+          await loadConversation(lastConversation.id);
+        }
+      }
     } catch (error) {
       console.warn("Nao foi possivel carregar conversas", error);
       setConversations([]);
@@ -198,6 +222,7 @@ export default function ChatScreen({ docs, currentUser, apiBaseUrl }) {
     setActiveConversationId(null);
     setInput("");
     setSideOpen(false);
+    localStorage.removeItem(LAST_CHAT_KEY);
   }
 
   const isEmpty = messages.length === 0 && !typing;

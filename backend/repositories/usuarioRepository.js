@@ -10,7 +10,11 @@ async function criarUsuario({ nome, email, tipo = "aluno" }) {
 }
 
 function listarUsuarios() {
-  return db.all("SELECT * FROM user ORDER BY criado_em DESC");
+  return db.all(
+    `SELECT *
+     FROM user
+     ORDER BY CASE WHEN email = 'aluno@jarvis.local' THEN 0 ELSE 1 END, criado_em DESC`,
+  );
 }
 
 function buscarUsuarioPorId(id) {

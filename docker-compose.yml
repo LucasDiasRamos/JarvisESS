@@ -17,6 +17,9 @@ services:
       - "3001:3001"
     volumes:
       - jarvis-data:/app/data
+      - ./data/raw:/app/data/raw:ro
+      - ./data/processed:/app/data/processed:ro
+      - ./data/chroma_db:/app/data/chroma_db
     healthcheck:
       test: ["CMD-SHELL", "node -e \"fetch('http://127.0.0.1:3001/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\""]
       interval: 30s
@@ -34,6 +37,8 @@ services:
       - "5173:80"
     volumes:
       - jarvis-data:/data:ro
+      - ./data/raw:/data/raw:ro
+      - ./data/processed:/data/processed:ro
     depends_on:
       backend:
         condition: service_healthy

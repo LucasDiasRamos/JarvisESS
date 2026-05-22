@@ -20,7 +20,6 @@ function initialsFromUser(user) {
 
 function TopNav({ screen, setScreen, currentUser }) {
   const items = [
-    { id: "landing", label: "Inicio" },
     { id: "chat", label: "Chat" },
     { id: "docs", label: "Documentos" },
     { id: "student", label: "Area do aluno" },
@@ -34,7 +33,7 @@ function TopNav({ screen, setScreen, currentUser }) {
       return;
     }
 
-    setScreen("landing");
+    setScreen("chat");
   }
 
   return (
@@ -42,7 +41,7 @@ function TopNav({ screen, setScreen, currentUser }) {
       <button
         className={"brand" + (isChat ? " chat-menu-brand" : "")}
         onClick={handleBrandClick}
-        aria-label={isChat ? "Abrir conversas" : "Jarvis - inicio"}
+        aria-label={isChat ? "Abrir conversas" : "Ir para o chat"}
       >
         <span className="brand-mark" aria-hidden="true">
           <svg className="brand-orbit" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.4">
@@ -82,75 +81,6 @@ function TopNav({ screen, setScreen, currentUser }) {
   );
 }
 
-function Landing({ setScreen }) {
-  return (
-    <main className="screen landing">
-      <section className="hero">
-        <div className="eyebrow">
-          <span className="dot" /> sistema educacional em operacao
-        </div>
-        <h1 className="hero-title">
-          O assistente academico que <em>le</em>, <em>organiza</em> e <em>lembra</em> por voce.
-        </h1>
-        <p className="hero-sub">
-          Jarvis transforma seus PDFs em conhecimento conversavel, cria lembretes
-          a partir das suas conversas e mantem seus estudos em ordem.
-        </p>
-        <div className="hero-cta">
-          <button className="btn btn-primary" onClick={() => setScreen("chat")}>Comecar agora</button>
-          <button className="btn btn-ghost" onClick={() => setScreen("docs")}>Ver documentos</button>
-        </div>
-        <div className="hero-meta">
-          <span>PDFs em data/raw</span>
-          <span className="sep">.</span>
-          <span>Estado local</span>
-          <span className="sep">.</span>
-          <span>Calendario e tarefas</span>
-        </div>
-      </section>
-
-      <section className="terminal-card">
-        <div className="terminal-head">
-          <span className="term-dot" />
-          <span className="term-dot" />
-          <span className="term-dot" />
-          <span className="term-title">jarvis - conversa</span>
-        </div>
-        <div className="terminal-body">
-          <div className="t-line"><span className="t-prompt">aluno ›</span> resuma um artigo da base</div>
-          <div className="t-line t-reply">
-            <span className="t-prompt jarvis">jarvis »</span>
-            Posso consultar os PDFs cadastrados, responder com referencias e criar tarefas a partir da conversa.
-          </div>
-          <div className="t-line"><span className="t-prompt">aluno ›</span> me lembre de revisar sexta</div>
-          <div className="t-line t-reply">
-            <span className="t-prompt jarvis">jarvis »</span>
-            Lembrete criado: <span className="chip">sexta - Revisao</span>
-          </div>
-        </div>
-      </section>
-
-      <section className="feature-grid">
-        <article className="feature">
-          <div className="feature-num">01</div>
-          <h3>Converse com seus PDFs</h3>
-          <p>Use os materiais cadastrados para simular respostas com base em documentos.</p>
-        </article>
-        <article className="feature">
-          <div className="feature-num">02</div>
-          <h3>Organizacao integrada</h3>
-          <p>Tarefas e eventos criados no chat aparecem na area do aluno.</p>
-        </article>
-        <article className="feature">
-          <div className="feature-num">03</div>
-          <h3>Base local</h3>
-          <p>Os PDFs da pasta data/raw aparecem na tela de documentos e abrem em nova aba.</p>
-        </article>
-      </section>
-    </main>
-  );
-}
-
 function loadState() {
   const fallback = {
     docs: [...seedDocs],
@@ -174,11 +104,11 @@ function loadState() {
 }
 
 function screenLabel(screen) {
-  return ({ landing: "01 Landing", chat: "02 Chat", docs: "03 Documents", student: "04 Student Area", logs: "05 Logs" })[screen] || screen;
+  return ({ chat: "01 Chat", docs: "02 Documents", student: "03 Student Area", logs: "04 Logs" })[screen] || screen;
 }
 
 export default function App() {
-  const [screen, setScreen] = useState("landing");
+  const [screen, setScreen] = useState("chat");
   const initial = loadState();
   const [docs, setDocs] = useState(initial.docs);
   const [tasks, setTasks] = useState(initial.tasks);
@@ -326,7 +256,6 @@ export default function App() {
   return (
     <div data-screen-label={screenLabel(screen)}>
       <TopNav screen={screen} setScreen={setScreen} currentUser={currentUser} />
-      {screen === "landing" && <Landing setScreen={setScreen} />}
       {screen === "chat" && (
         <ChatScreen
           docs={docs}

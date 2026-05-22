@@ -61,18 +61,63 @@ def listar_tarefas(user_id: int):
         "dados": tarefas
     }
 
-def concluir_tarefa(tarefa_id: int):
+def _buscar_tarefa_pendente_por_texto(user_id: int, texto: str):
+    termo = f"%{texto.strip()}%"
+    tarefas = executar_select(
+        """
+        SELECT *
+        FROM tarefas
+        WHERE user_id = ?
+          AND concluida = 0
+          AND (
+            lower(titulo) LIKE lower(?)
+            OR lower(descricao) LIKE lower(?)
+          )
+        ORDER BY data_limite ASC, criado_em DESC
+        LIMIT 5
+        """,
+        (user_id, termo, termo)
+    )
+    return tarefas
+
+
+def concluir_tarefa(
+        tarefa_id: int | None = None,
+        user_id: int | None = None,
+        titulo: str | None = None,
+        texto: str | None = None
+):
+    termo_busca = (titulo or texto or "").strip()
+
+    if not tarefa_id and termo_busca and user_id:
+        tarefas = _buscar_tarefa_pendente_por_texto(user_id, termo_busca)
+
+        if len(tarefas) == 1:
+            tarefa_id = tarefas[0]["id"]
+        elif len(tarefas) > 1:
+            return {
+                "error": True,
+                "message": "Encontrei mais de uma tarefa parecida. Peça para o usuário escolher uma.",
+                "dados": tarefas
+            }
+        else:
+            return {
+                "error": True,
+                "message": "Não encontrei tarefa pendente com esse texto.",
+                "busca": termo_busca
+            }
+
     if not tarefa_id:
         return {
             "error": True,
-            "message": "tarefa_id é obrigatório."
+            "message": "tarefa_id é obrigatório, ou informe user_id com titulo/texto da tarefa."
         }
 
     linhas_afetadas = executar_update_delete(
         """
         UPDATE tarefas 
         SET concluida = 1 
-        WHERE id = ?
+        WHERE id = ? AND concluida = 0
         """,
         (tarefa_id,)
     )
@@ -85,7 +130,15 @@ def concluir_tarefa(tarefa_id: int):
 
     return {
         "error": False,
-        "message": "Tarefa concluída com sucesso."
+        "message": "Tarefa concluída com sucesso.",
+        "dados": executar_select(
+            """
+            SELECT *
+            FROM tarefas
+            WHERE id = ?
+            """,
+            (tarefa_id,)
+        )[0]
     }
 
 def excluir_tarefa(tarefa_id: int):
