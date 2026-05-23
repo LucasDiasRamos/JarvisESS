@@ -11,11 +11,13 @@ def main():
         payload = json.load(sys.stdin)
         texto = str(payload.get("message", "")).strip()
         user_id = int(payload.get("user_id") or 1)
+        conversation_id = payload.get("conversation_id")
+        conversation_id = int(conversation_id) if conversation_id else None
 
         if not texto:
             resposta = {"erro": True, "resposta": "Mensagem vazia."}
         else:
-            resposta = processar_mensagem_usuario(texto, user_id=user_id)
+            resposta = processar_mensagem_usuario(texto, user_id=user_id, conversation_id=conversation_id)
 
     except Exception as erro:
         pergunta_usuario = ""

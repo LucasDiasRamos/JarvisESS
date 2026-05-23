@@ -194,6 +194,7 @@ export default function ChatScreen({ docs, currentUser, apiBaseUrl }) {
         body: JSON.stringify({
           message: text,
           user_id: currentUser?.id || currentUser?.usuario_id || 1,
+          conversation_id: conversationId,
         }),
       });
 

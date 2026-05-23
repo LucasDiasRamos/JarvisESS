@@ -11,6 +11,7 @@ const RESPONSE_PREFIX = "__JARVIS_RESPONSE__";
 function conversarComJarvis(req, res) {
   const texto = String(req.body?.message || "").trim();
   const userId = Number(req.body?.user_id || req.body?.usuario_id || 1);
+  const conversationId = Number(req.body?.conversation_id || req.body?.conversa_id || 0) || null;
 
   if (!texto) {
     return res.status(400).json({ erro: "message e obrigatorio." });
@@ -107,7 +108,7 @@ function conversarComJarvis(req, res) {
     }
   });
 
-  child.stdin.end(JSON.stringify({ message: texto, user_id: userId }));
+  child.stdin.end(JSON.stringify({ message: texto, user_id: userId, conversation_id: conversationId }));
 }
 
 module.exports = {

@@ -67,33 +67,12 @@ O SQLite usado pelo Docker fica dentro do volume nomeado `jarvis-data`:
 /app/data/jarvis.db
 ```
 
-Esse arquivo nao e o mesmo que `./data/jarvis.db` local, a menos que voce copie do container.
-
-Consultar o banco dentro do container:
 
 ```bash
 docker compose exec backend sqlite3 /app/data/jarvis.db
 ```
 
-Comandos uteis no SQLite:
 
-```sql
-.tables
-.schema
-SELECT * FROM user;
-SELECT * FROM arquivos_pdf;
-SELECT * FROM conversas;
-SELECT * FROM mensagens;
-SELECT * FROM tarefas;
-SELECT * FROM lembretes;
-.quit
-```
-
-Copiar o banco para abrir no DB Browser for SQLite:
-
-```bash
-docker cp jarvisess-backend-1:/app/data/jarvis.db ./data/jarvis.db
-```
 
 ## Funcionalidades
 
@@ -112,6 +91,7 @@ docker cp jarvisess-backend-1:/app/data/jarvis.db ./data/jarvis.db
 - Conversao para Markdown no backend.
 - PDFs ficam acessiveis no frontend via `/raw/...`.
 - A tela de Documentos lista arquivos reais vindos do banco.
+- Exemplos de perguntas para avaliar RAG estao em [`docs/avaliacao-rag.md`](docs/avaliacao-rag.md).
 
 ### Area do aluno
 
@@ -121,6 +101,44 @@ docker cp jarvisess-backend-1:/app/data/jarvis.db ./data/jarvis.db
 - Itens criados pelas tools da IA recebem `origem: "jarvis"`.
 - Apenas itens com `origem: "jarvis"` mostram o selo "criado pelo Jarvis".
 - Calendario permite criar itens por tipo: Prova, Entrega, Aula e Evento.
+
+## Tools disponiveis
+
+As tools abaixo ficam registradas em `backend/ai/tool_router.py` e podem ser chamadas pela LLM via tool calling.
+
+### Tarefas
+
+- `criar_tarefa`: cria uma tarefa para o aluno.
+- `listar_tarefas`: lista as tarefas do aluno.
+- `concluir_tarefa`: marca uma tarefa como concluida.
+- `excluir_tarefa`: exclui uma tarefa.
+
+### Calendario e lembretes
+
+- `criar_lembrete`: cria um lembrete no calendario.
+- `listar_lembretes`: lista lembretes por usuario, periodo ou intervalo de datas.
+- `alterar_lembrete`: altera titulo, descricao, data/hora ou tipo de um lembrete.
+- `excluir_lembrete`: exclui um lembrete.
+
+### Conversas
+
+- `criar_conversa`: cria uma conversa.
+- `listar_conversas`: lista conversas do usuario.
+- `salvar_mensagem`: salva uma mensagem em uma conversa.
+- `listar_mensagens`: lista mensagens de uma conversa.
+
+### Arquivos
+
+- `registrar_arquivo`: registra um PDF enviado pelo usuario.
+- `listar_arquivos`: lista PDFs enviados pelo usuario.
+- `deletar_arquivo`: exclui um PDF registrado.
+
+### RAG e estudo
+
+- `buscar_material_rag`: busca informacoes nos materiais enviados pelo aluno.
+- `gerar_exercicios`: gera exercicios reais para o aluno responder com base nos materiais.
+- `iniciar_active_recall`: inicia uma pergunta de active recall sobre um tema.
+- `avaliar_resposta_active_recall`: avalia a resposta do aluno em uma sessao de active recall.
 
 ### Logs
 

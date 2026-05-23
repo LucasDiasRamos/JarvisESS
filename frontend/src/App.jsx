@@ -6,6 +6,7 @@ import StudentScreen from "./StudentScreen";
 import { seedDocs } from "./data";
 
 const STORAGE_KEY = "jarvis-edu-state-vite-db";
+const CURRENT_USER_KEY = "jarvis-current-user-id";
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3001";
 
 function initialsFromUser(user) {
@@ -18,7 +19,13 @@ function initialsFromUser(user) {
   return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
 }
 
-function TopNav({ screen, setScreen, currentUser }) {
+function TopNav({ screen, setScreen, currentUser, onCreateUser }) {
+  const [accountOpen, setAccountOpen] = useState(false);
+  const [showCreateAccount, setShowCreateAccount] = useState(false);
+  const [accountName, setAccountName] = useState("");
+  const [accountEmail, setAccountEmail] = useState("");
+  const [accountError, setAccountError] = useState("");
+  const [creatingAccount, setCreatingAccount] = useState(false);
   const items = [
     { id: "chat", label: "Chat" },
     { id: "docs", label: "Documentos" },
@@ -34,6 +41,33 @@ function TopNav({ screen, setScreen, currentUser }) {
     }
 
     setScreen("chat");
+  }
+
+  async function handleCreateAccount(event) {
+    event.preventDefault();
+
+    const nome = accountName.trim();
+    const email = accountEmail.trim();
+
+    if (!nome) {
+      setAccountError("Informe um nome.");
+      return;
+    }
+
+    setCreatingAccount(true);
+    setAccountError("");
+
+    try {
+      await onCreateUser({ nome, email: email || null });
+      setAccountName("");
+      setAccountEmail("");
+      setShowCreateAccount(false);
+      setAccountOpen(false);
+    } catch (error) {
+      setAccountError(error.message || "Nao foi possivel criar a conta.");
+    } finally {
+      setCreatingAccount(false);
+    }
   }
 
   return (
@@ -73,9 +107,65 @@ function TopNav({ screen, setScreen, currentUser }) {
       </nav>
       <div className="nav-right">
         <span className="badge-mono">v1.0 beta</span>
-        <button className="avatar" aria-label={currentUser?.nome ? `Conta de ${currentUser.nome}` : "Conta"}>
-          {initialsFromUser(currentUser)}
-        </button>
+        <div className="account-menu">
+          <button
+            className="avatar"
+            aria-label={currentUser?.nome ? `Conta de ${currentUser.nome}` : "Conta"}
+            aria-expanded={accountOpen}
+            onClick={() => setAccountOpen((open) => !open)}
+          >
+            {initialsFromUser(currentUser)}
+          </button>
+          {accountOpen && (
+            <div className="account-popover">
+              <div className="account-current">
+                <span className="account-label">Conta atual</span>
+                <strong>{currentUser?.nome || "Aluno"}</strong>
+                {currentUser?.email && <span>{currentUser.email}</span>}
+              </div>
+              {!showCreateAccount ? (
+                <button className="btn btn-ghost full" onClick={() => setShowCreateAccount(true)}>
+                  Criar conta
+                </button>
+              ) : (
+                <form className="account-form" onSubmit={handleCreateAccount}>
+                  <input
+                    value={accountName}
+                    onChange={(event) => setAccountName(event.target.value)}
+                    placeholder="Nome"
+                    aria-label="Nome"
+                    disabled={creatingAccount}
+                  />
+                  <input
+                    value={accountEmail}
+                    onChange={(event) => setAccountEmail(event.target.value)}
+                    placeholder="Email opcional"
+                    aria-label="Email opcional"
+                    type="email"
+                    disabled={creatingAccount}
+                  />
+                  {accountError && <span className="account-error">{accountError}</span>}
+                  <div className="account-actions">
+                    <button
+                      type="button"
+                      className="btn btn-ghost"
+                      onClick={() => {
+                        setShowCreateAccount(false);
+                        setAccountError("");
+                      }}
+                      disabled={creatingAccount}
+                    >
+                      Cancelar
+                    </button>
+                    <button className="btn btn-primary" disabled={creatingAccount}>
+                      {creatingAccount ? "Criando..." : "Criar"}
+                    </button>
+                  </div>
+                </form>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     </header>
   );
@@ -136,8 +226,10 @@ export default function App() {
 
       const users = await response.json();
       if (Array.isArray(users) && users.length > 0) {
-        setCurrentUser(users[0]);
-        return users[0];
+        const selectedId = Number(localStorage.getItem(CURRENT_USER_KEY));
+        const selectedUser = users.find((user) => Number(user.id) === selectedId) || users[0];
+        setCurrentUser(selectedUser);
+        return selectedUser;
       }
 
       setCurrentUser(null);
@@ -202,6 +294,25 @@ export default function App() {
     }
   }
 
+  async function createUser({ nome, email }) {
+    const response = await fetch(`${API_BASE_URL}/usuarios`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ nome, email, tipo: "aluno" }),
+    });
+
+    const payload = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      throw new Error(payload.erro || `HTTP ${response.status}`);
+    }
+
+    localStorage.setItem(CURRENT_USER_KEY, String(payload.id));
+    setCurrentUser(payload);
+    await loadStudentData(payload);
+    return payload;
+  }
+
   useEffect(() => {
     let ignore = false;
 
@@ -255,7 +366,12 @@ export default function App() {
 
   return (
     <div data-screen-label={screenLabel(screen)}>
-      <TopNav screen={screen} setScreen={setScreen} currentUser={currentUser} />
+      <TopNav
+        screen={screen}
+        setScreen={setScreen}
+        currentUser={currentUser}
+        onCreateUser={createUser}
+      />
       {screen === "chat" && (
         <ChatScreen
           docs={docs}

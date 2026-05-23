@@ -145,6 +145,67 @@ def listar_lembretes(
         }
     }
 
+def alterar_lembrete(
+        lembrete_id: int,
+        user_id: int,
+        titulo: str | None = None,
+        descricao: str | None = None,
+        data_hora: str | None = None,
+        tipo: str | None = None
+):
+    if not lembrete_id or not user_id:
+        return {
+            "error": True,
+            "message": "lembrete_id e user_id são obrigatórios."
+        }
+
+    campos = {
+        "titulo": titulo,
+        "descricao": descricao,
+        "data_hora": data_hora,
+        "tipo": tipo,
+    }
+    atualizacoes = {campo: valor for campo, valor in campos.items() if valor is not None}
+
+    if not atualizacoes:
+        return {
+            "error": True,
+            "message": "Informe ao menos um campo para alterar: titulo, descricao, data_hora ou tipo."
+        }
+
+    set_clause = ", ".join([f"{campo} = ?" for campo in atualizacoes])
+    parametros = list(atualizacoes.values()) + [lembrete_id, user_id]
+
+    linhas_afetadas = executar_update_delete(
+        f"""
+        UPDATE lembretes
+        SET {set_clause}
+        WHERE id = ? AND user_id = ?
+        """,
+        tuple(parametros)
+    )
+
+    if linhas_afetadas == 0:
+        return {
+            "error": True,
+            "message": "Lembrete não encontrado ou não pertence ao usuário."
+        }
+
+    lembrete = executar_select(
+        """
+        SELECT *
+        FROM lembretes
+        WHERE id = ? AND user_id = ?
+        """,
+        (lembrete_id, user_id)
+    )
+
+    return {
+        "error": False,
+        "message": "Lembrete alterado com sucesso.",
+        "dados": _formatar_lembrete(lembrete[0]) if lembrete else None
+    }
+
 def excluir_lembrete(lembrete_id: int, user_id: int):
     if not lembrete_id or not user_id:
         return {

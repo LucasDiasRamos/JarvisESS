@@ -3,8 +3,8 @@ from rag.retriever import search
 
 def gerar_exercicios(query: str, quantidade: int = 3) -> dict:
     """
-    Busca amterial relevante e retorna contexto para a LLM gerar exs.
-    A LLM usa esse contexto para formular as questões.
+    Busca material relevante e retorna contexto para a LLM gerar exercícios.
+    A LLM usa esse contexto para formular questões para o aluno responder.
     """
     if not query:
         return {
@@ -25,7 +25,7 @@ def gerar_exercicios(query: str, quantidade: int = 3) -> dict:
     
     return {
         "error": False,
-        "message": f"Material encontrado. Gere {quantidade} exercícios baseados no contexot.",
+        "message": f"Material encontrado. Gere {quantidade} exercício(s) baseado(s) no contexto.",
         "dados": {
             "query": query,
             "quantidade": quantidade,
@@ -33,8 +33,9 @@ def gerar_exercicios(query: str, quantidade: int = 3) -> dict:
             "fontes": fontes,
             "instrucao_llm": (
                 f"Com base no contexto fornecido, gere {quantidade} questões de múltipla escolha "
-                f"sobre '{query}'. Para cada questão inclua: enunciado, 4 alternativas (A, B, C, D) "
-                f"e o gabarito comentado. Responda em português."
+                f"sobre '{query}' para o aluno responder agora. Para cada questão inclua enunciado "
+                f"e 4 alternativas (A, B, C, D). Não mostre o gabarito nem a explicação ainda. "
+                f"Peça para o aluno responder com a letra da alternativa. Responda em português."
             )
         }
     }

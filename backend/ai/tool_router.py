@@ -13,6 +13,7 @@ from backend.ai.tools.tarefa_tools import (
 from backend.ai.tools.lembrete_tools import (
     criar_lembrete,
     listar_lembretes,
+    alterar_lembrete,
     excluir_lembrete
 )
 
@@ -47,6 +48,7 @@ TOOLS = {
 
     "criar_lembrete": criar_lembrete,
     "listar_lembretes": listar_lembretes,
+    "alterar_lembrete": alterar_lembrete,
     "excluir_lembrete": excluir_lembrete,
 
     "criar_conversa": criar_conversa,
@@ -68,6 +70,7 @@ TOOLS = {
 ARGUMENT_ALIASES = {
     "concluir_tarefa": {"id": "tarefa_id"},
     "excluir_tarefa": {"id": "tarefa_id"},
+    "alterar_lembrete": {"id": "lembrete_id"},
     "excluir_lembrete": {"id": "lembrete_id"},
     "deletar_arquivo": {"id": "arquivo_id"},
     "registrar_arquivo": {
