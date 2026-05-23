@@ -1,0 +1,14 @@
+venv/
+.venv/
+__pycache__/
+*.pyc
+
+node_modules/
+dist/
+backend/jarvis.db
+data/jarvis.db
+logs/
+
+.agents
+.codex
+.env

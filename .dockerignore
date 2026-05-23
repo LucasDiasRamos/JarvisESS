@@ -1,0 +1,14 @@
+.git
+.agents
+.codex
+.env
+**/node_modules
+**/dist
+**/__pycache__
+**/*.pyc
+.venv
+venv
+backend/jarvis.db
+npm-debug.log*
+Dockerfile
+docker-compose.override.yml
