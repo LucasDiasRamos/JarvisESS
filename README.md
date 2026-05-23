@@ -67,12 +67,54 @@ O SQLite usado pelo Docker fica dentro do volume nomeado `jarvis-data`:
 /app/data/jarvis.db
 ```
 
-
 ```bash
 docker compose exec backend sqlite3 /app/data/jarvis.db
 ```
 
+## Requisitos do trabalho atendidos
 
+| Requisito | Status | Onde encontrar |
+|---|---|---|
+| RAG com embeddings e ChromaDB | Implementado | `rag/`, `backend/ai/tools/rag_tools.py` |
+| Consulta a materiais de estudo | Implementado | Tool `buscar_material_rag` |
+| Agenda academica | Implementado | Tools `criar_lembrete`, `listar_lembretes` |
+| Lista de tarefas | Implementado | Tools `criar_tarefa`, `listar_tarefas`, `concluir_tarefa` |
+| Planejamento de estudos | Implementado | Tool `montar_plano_estudos` |
+| Tool calling com decisao pela LLM | Implementado | `backend/ai/tool_router.py` |
+| Logs de tool calling | Implementado | `data/logs/tools.jsonl` |
+| Geracao de exercicios | Implementado | Tool `gerar_exercicios` |
+| Active recall interativo | Implementado | Tools `iniciar_active_recall`, `avaliar_resposta_active_recall` |
+| Avaliacao com 10 perguntas | Documentado | `docs/AVALIACAO_SISTEMA.md` |
+| Analise de erros | Documentado | `docs/AVALIACAO_SISTEMA.md` |
+| Dataset com 10+ documentos | Implementado | `data/` — 41 documentos |
+| Documentacao do dataset | Documentado | `data/README.md` |
+
+## Ferramentas de IA utilizadas no desenvolvimento
+
+| Ferramenta | Uso |
+|---|---|
+| Claude (Anthropic) | Apoio na arquitetura, revisao de codigo, geracao de modulos RAG e logs |
+| GitHub Copilot | Sugestao de trechos de codigo no editor |
+
+## Dataset e chunking
+
+O dataset contém 41 artigos científicos sobre otimização e geração de código em compiladores,
+coletados do ACM Digital Library, arXiv e Google Scholar.
+
+A estratégia de chunking usa dois estágios:
+1. Split por headers Markdown (`MarkdownHeaderTextSplitter`)
+2. Split por tamanho com `chunk_size=800` e `chunk_overlap=100`
+
+Chunks com menos de 100 caracteres de conteúdo real são descartados automaticamente.
+
+Documentação completa em [`data/README.md`](data/README.md).
+
+## Avaliacao e analise de erros
+
+O sistema foi avaliado com 10 perguntas cobrindo RAG, agenda, tarefas, planejamento e aprendizado.
+Foram identificadas e documentadas 3 falhas reais com tipo, causa e possível solução.
+
+Documentação completa em [`docs/AVALIACAO_SISTEMA.md`](docs/AVALIACAO_SISTEMA.md).
 
 ## Funcionalidades
 
@@ -139,6 +181,10 @@ As tools abaixo ficam registradas em `backend/ai/tool_router.py` e podem ser cha
 - `gerar_exercicios`: gera exercicios reais para o aluno responder com base nos materiais.
 - `iniciar_active_recall`: inicia uma pergunta de active recall sobre um tema.
 - `avaliar_resposta_active_recall`: avalia a resposta do aluno em uma sessao de active recall.
+
+### Planejamento
+
+- `montar_plano_estudos`: combina agenda, tarefas e materiais para montar um plano de estudos.
 
 ### Logs
 
