@@ -1,5 +1,7 @@
 # JarvisIA
 
+## Feito por Lucas Mateus Dias Ramos e Marco Antônio de Rezende Zarate 
+
 Assistente academico com chat, RAG sobre PDFs, tarefas, lembretes, historico de conversas, upload de documentos e logs de observabilidade.
 
 ## Stack
