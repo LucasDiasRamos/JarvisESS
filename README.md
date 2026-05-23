@@ -1,5 +1,7 @@
 # JarvisIA
 
+## Feito por Lucas Mateus Dias Ramos e Marco Antônio de Rezende Zarate 
+
 Assistente academico com chat, RAG sobre PDFs, tarefas, lembretes, historico de conversas, upload de documentos e logs de observabilidade.
 
 ## Stack
@@ -55,6 +57,8 @@ JARVIS_LLM_API_KEY=sua_chave
 JARVIS_LLM_BASE_URL=https://seu-endpoint/v1
 JARVIS_LLM_MODEL=google/gemma-3-12b-it
 JARVIS_LLM_TIMEOUT=30
+JARVIS_LLM_MAX_TOKENS=1500
+JARVIS_CHAT_TIMEOUT_MS=90000
 ```
 
 O `docker-compose.yml` repassa essas variaveis para o backend.
@@ -79,13 +83,12 @@ docker compose exec backend sqlite3 /app/data/jarvis.db
 | Consulta a materiais de estudo | Implementado | Tool `buscar_material_rag` |
 | Agenda academica | Implementado | Tools `criar_lembrete`, `listar_lembretes` |
 | Lista de tarefas | Implementado | Tools `criar_tarefa`, `listar_tarefas`, `concluir_tarefa` |
-| Planejamento de estudos | Implementado | Tool `montar_plano_estudos` |
 | Tool calling com decisao pela LLM | Implementado | `backend/ai/tool_router.py` |
 | Logs de tool calling | Implementado | `data/logs/tools.jsonl` |
 | Geracao de exercicios | Implementado | Tool `gerar_exercicios` |
 | Active recall interativo | Implementado | Tools `iniciar_active_recall`, `avaliar_resposta_active_recall` |
-| Avaliacao com 10 perguntas | Documentado | `docs/AVALIACAO_SISTEMA.md` |
-| Analise de erros | Documentado | `docs/AVALIACAO_SISTEMA.md` |
+| Avaliacao com 10 perguntas | Documentado | `docs/avaliacao_sistema.md` |
+| Analise de erros | Documentado | `docs/avaliacao_sistema.md` |
 | Dataset com 10+ documentos | Implementado | `data/` — 41 documentos |
 | Documentacao do dataset | Documentado | `data/README.md` |
 
@@ -95,7 +98,7 @@ docker compose exec backend sqlite3 /app/data/jarvis.db
 |---|---|
 | Claude (Anthropic) | Apoio na arquitetura, revisao de codigo, geracao de modulos RAG e logs |
 | GitHub Copilot | Sugestao de trechos de codigo no editor |
-| Codex (OpenAI) | Apoio na arquitetura, revisao de codigo, apoio na geração do frontEnd e Integração com o Backend.                                                                                                                                                 
+| Codex (OpenAI) | Apoio na arquitetura, revisao de codigo, apoio na geração do frontend e Integração com o Backend. |
 
 ## Dataset e chunking
 
@@ -115,7 +118,7 @@ Documentação completa em [`data/README.md`](data/README.md).
 O sistema foi avaliado com 10 perguntas cobrindo RAG, agenda, tarefas, planejamento e aprendizado.
 Foram identificadas e documentadas 3 falhas reais com tipo, causa e possível solução.
 
-Documentação completa em [`docs/AVALIACAO_SISTEMA.md`](docs/AVALIACAO_SISTEMA.md).
+Documentação completa em [`docs/avaliacao_sistema.md`](docs/avaliacao_sistema.md).
 
 ## Funcionalidades
 
@@ -182,10 +185,6 @@ As tools abaixo ficam registradas em `backend/ai/tool_router.py` e podem ser cha
 - `gerar_exercicios`: gera exercicios reais para o aluno responder com base nos materiais.
 - `iniciar_active_recall`: inicia uma pergunta de active recall sobre um tema.
 - `avaliar_resposta_active_recall`: avalia a resposta do aluno em uma sessao de active recall.
-
-### Planejamento (Ainda não implementada 100%)
-
-- `montar_plano_estudos`: combina agenda, tarefas e materiais para montar um plano de estudos.
 
 ### Logs
 
@@ -285,5 +284,5 @@ docker compose exec backend tail -f /app/data/logs/erros.jsonl
 ## Observacoes
 
 - O backend usa `sqlite3`, um pacote nativo. A imagem Docker usa `node:22-trixie-slim` para evitar problemas de runtime com glibc.
-- O volume `jarvis-data` persiste SQLite, PDFs, Markdown e logs.
+- O volume `jarvis-data` persiste SQLite, ChromaDB e logs; os PDFs e Markdown ficam nos diretórios locais `./data/raw` e `./data/processed`.
 - O arquivo local `./data/jarvis.db` pode estar diferente do banco real do container.
