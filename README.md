@@ -55,6 +55,8 @@ JARVIS_LLM_API_KEY=sua_chave
 JARVIS_LLM_BASE_URL=https://seu-endpoint/v1
 JARVIS_LLM_MODEL=google/gemma-3-12b-it
 JARVIS_LLM_TIMEOUT=30
+JARVIS_LLM_MAX_TOKENS = 1500
+JARVIS_CHAT_TIMEOUT_MS= 15000
 ```
 
 O `docker-compose.yml` repassa essas variaveis para o backend.
