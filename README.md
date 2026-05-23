@@ -95,6 +95,7 @@ docker compose exec backend sqlite3 /app/data/jarvis.db
 |---|---|
 | Claude (Anthropic) | Apoio na arquitetura, revisao de codigo, geracao de modulos RAG e logs |
 | GitHub Copilot | Sugestao de trechos de codigo no editor |
+| Codex (OpenAI) | Apoio na arquitetura, revisao de codigo, apoio na geração do frontEnd e Integração com o Backend.                                                                                                                                                 
 
 ## Dataset e chunking
 
@@ -182,7 +183,7 @@ As tools abaixo ficam registradas em `backend/ai/tool_router.py` e podem ser cha
 - `iniciar_active_recall`: inicia uma pergunta de active recall sobre um tema.
 - `avaliar_resposta_active_recall`: avalia a resposta do aluno em uma sessao de active recall.
 
-### Planejamento
+### Planejamento (Ainda não implementada 100%)
 
 - `montar_plano_estudos`: combina agenda, tarefas e materiais para montar um plano de estudos.
 

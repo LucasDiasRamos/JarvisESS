@@ -56,6 +56,10 @@ function buscarArquivoPorId(id) {
   return db.get("SELECT *, user_id AS usuario_id FROM arquivos_pdf WHERE id = ?", [id]);
 }
 
+async function deletarArquivo(id) {
+  return db.run("DELETE FROM arquivos_pdf WHERE id = ?", [id]);
+}
+
 async function atualizarArquivo(id, fields) {
   const allowed = [
     "caminho_md",
@@ -80,6 +84,7 @@ module.exports = {
   buscarArquivoPorCaminho,
   buscarArquivoPorId,
   criarArquivo,
+  deletarArquivo,
   listarArquivos,
   listarArquivosPorUsuario,
 };

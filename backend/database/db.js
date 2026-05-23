@@ -34,6 +34,7 @@ function initDatabase() {
       ensureArquivoColumns(db)
         .then(() => ensureTarefaColumns(db))
         .then(() => ensureLembreteColumns(db))
+        .then(() => ensureMensagemColumns(db))
         .then(() => seedDemoData())
         .then(() => resolve(db))
         .catch(reject);
@@ -52,6 +53,15 @@ function tableInfo(db, tableName) {
       resolve(rows);
     });
   });
+}
+
+async function ensureMensagemColumns(db) {
+  const columns = await tableInfo(db, "mensagens");
+  const names = new Set(columns.map((column) => column.name));
+
+  if (!names.has("fontes")) {
+    await run("ALTER TABLE mensagens ADD COLUMN fontes TEXT");
+  }
 }
 
 async function ensureArquivoColumns(db) {

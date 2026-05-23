@@ -22,6 +22,7 @@ export default function ChatScreen({ docs, currentUser, apiBaseUrl }) {
   const [input, setInput] = useState("");
   const [typing, setTyping] = useState(false);
   const [sideOpen, setSideOpen] = useState(false);
+  const [deletingConversationId, setDeletingConversationId] = useState(null);
   const scrollRef = useRef(null);
   const firstName = firstNameFromUser(currentUser);
   const userId = currentUser?.id || currentUser?.usuario_id || 1;
@@ -62,10 +63,24 @@ export default function ChatScreen({ docs, currentUser, apiBaseUrl }) {
   }, [activeConversationId]);
 
   function mapStoredMessage(row) {
+    let sources = [];
+
+    if (Array.isArray(row.fontes)) {
+      sources = row.fontes;
+    } else if (typeof row.fontes === "string" && row.fontes.trim()) {
+      try {
+        const parsed = JSON.parse(row.fontes);
+        sources = Array.isArray(parsed) ? parsed : [];
+      } catch (error) {
+        sources = [];
+      }
+    }
+
     return {
       id: row.id || uid(),
       role: row.remetente === "jarvis" ? "jarvis" : "user",
       text: row.conteudo || "",
+      sources,
     };
   }
 
@@ -134,7 +149,7 @@ export default function ChatScreen({ docs, currentUser, apiBaseUrl }) {
     return conversation.id;
   }
 
-  async function saveMessage(conversationId, role, text) {
+  async function saveMessage(conversationId, role, text, sources = []) {
     const response = await fetch(`${apiBaseUrl}/mensagens`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -142,6 +157,7 @@ export default function ChatScreen({ docs, currentUser, apiBaseUrl }) {
         conversa_id: conversationId,
         remetente: role === "jarvis" ? "jarvis" : "usuario",
         conteudo: text,
+        fontes: sources,
       }),
     });
 
@@ -149,7 +165,7 @@ export default function ChatScreen({ docs, currentUser, apiBaseUrl }) {
     return response.json();
   }
 
-  function animateJarvisMessage(text) {
+  function animateJarvisMessage(text, metadata = {}) {
     const messageId = uid();
     const step = Math.max(1, Math.ceil(text.length / 90));
     let index = 0;
@@ -169,6 +185,11 @@ export default function ChatScreen({ docs, currentUser, apiBaseUrl }) {
 
         if (index >= text.length) {
           window.clearInterval(timer);
+          setMessages((m) => m.map((item) => (
+            item.id === messageId
+              ? { ...item, ...metadata, streaming: false }
+              : item
+          )));
           resolve();
         }
       }, 18);
@@ -205,9 +226,14 @@ export default function ChatScreen({ docs, currentUser, apiBaseUrl }) {
       }
 
       const replyText = data?.resposta || "Não recebi uma resposta do Jarvis.";
+      const sources = Array.isArray(data?.sources)
+        ? data.sources
+        : Array.isArray(data?.fontes)
+          ? data.fontes
+          : [];
       setTyping(false);
-      await animateJarvisMessage(replyText);
-      await saveMessage(conversationId, "jarvis", replyText);
+      await animateJarvisMessage(replyText, { sources });
+      await saveMessage(conversationId, "jarvis", replyText, sources);
       await loadConversations();
     } catch (error) {
       const errorText = `Não consegui falar com o Jarvis agora. ${error.message}`;
@@ -224,6 +250,30 @@ export default function ChatScreen({ docs, currentUser, apiBaseUrl }) {
     setInput("");
     setSideOpen(false);
     localStorage.removeItem(LAST_CHAT_KEY);
+  }
+
+  async function deleteConversation(conversationId) {
+    const previousConversations = conversations;
+    const wasActive = activeConversationId === conversationId;
+
+    setDeletingConversationId(conversationId);
+    setConversations((rows) => rows.filter((conversation) => conversation.id !== conversationId));
+    if (wasActive) {
+      setMessages([]);
+      setActiveConversationId(null);
+      localStorage.removeItem(LAST_CHAT_KEY);
+    }
+
+    try {
+      const response = await fetch(`${apiBaseUrl}/conversas/${conversationId}`, { method: "DELETE" });
+      if (!response.ok && response.status !== 204) throw new Error(`HTTP ${response.status}`);
+    } catch (error) {
+      console.warn("Nao foi possivel apagar a conversa", error);
+      setConversations(previousConversations);
+      if (wasActive) await loadConversation(conversationId);
+    } finally {
+      setDeletingConversationId(null);
+    }
   }
 
   const isEmpty = messages.length === 0 && !typing;
@@ -248,13 +298,23 @@ export default function ChatScreen({ docs, currentUser, apiBaseUrl }) {
             </li>
           )}
           {conversations.map((conversation) => (
-            <li key={conversation.id}>
+            <li key={conversation.id} className="side-link-row">
               <button
                 className={"side-link side-link-button" + (activeConversationId === conversation.id ? " is-active" : "")}
                 onClick={() => loadConversation(conversation.id)}
               >
                 <span className="side-link-title">{conversation.titulo || "Conversa sem titulo"}</span>
                 <span className="side-link-when">{formatConversationDate(conversation.criado_em)}</span>
+              </button>
+              <button
+                className="row-icon-btn danger"
+                type="button"
+                aria-label="Apagar conversa"
+                title="Apagar conversa"
+                disabled={deletingConversationId === conversation.id}
+                onClick={() => deleteConversation(conversation.id)}
+              >
+                ×
               </button>
             </li>
           ))}

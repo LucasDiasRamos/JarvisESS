@@ -35,6 +35,7 @@ CREATE TABLE IF NOT EXISTS mensagens (
   conversa_id INTEGER,
   remetente TEXT NOT NULL,
   conteudo TEXT NOT NULL,
+  fontes TEXT,
   criado_em DATETIME DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY(conversa_id) REFERENCES conversas(id)
 );

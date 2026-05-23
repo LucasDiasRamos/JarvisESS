@@ -44,6 +44,20 @@ async function listarPorUsuario(req, res, next) {
   }
 }
 
+async function remover(req, res, next) {
+  try {
+    const result = await arquivoRepository.deletarArquivo(req.params.id);
+
+    if (result.changes === 0) {
+      return res.status(404).json({ erro: "Documento nao encontrado." });
+    }
+
+    return res.status(204).send();
+  } catch (error) {
+    return next(error);
+  }
+}
+
 async function migrarData(req, res, next) {
   try {
     const arquivos = await documentService.migrateRawPdfs();
@@ -70,5 +84,6 @@ module.exports = {
   listar,
   listarPorUsuario,
   migrarData,
+  remover,
   upload,
 };

@@ -3,9 +3,9 @@ import os
 from dotenv import load_dotenv
 from openai import APIConnectionError, APITimeoutError, OpenAI, OpenAIError
 
-
 load_dotenv()
 
+MAX_TOKENS = int(os.getenv("JARVIS_LLM_MAX_TOKENS", "1500"))
 MODEL = os.getenv("JARVIS_LLM_MODEL", "google/gemma-3-12b-it")
 client = None
 
@@ -40,7 +40,7 @@ def chamar_llm(mensagens):
         resposta = llm_client.chat.completions.create(
             model=MODEL,
             messages=mensagens,
-            max_tokens=300
+            max_tokens=MAX_TOKENS
         )
     except (APIConnectionError, APITimeoutError):
         return (

@@ -4,12 +4,17 @@ async function criar(req, res, next) {
   try {
     const { remetente, conteudo } = req.body;
     const conversa_id = req.body?.conversa_id || req.body?.conversation_id;
+    const fontes = Array.isArray(req.body?.fontes)
+      ? req.body.fontes
+      : Array.isArray(req.body?.sources)
+        ? req.body.sources
+        : [];
 
     if (!remetente || !conteudo) {
       return res.status(400).json({ erro: "remetente e conteudo sao obrigatorios." });
     }
 
-    const mensagem = await mensagemRepository.criarMensagem({ conversa_id, remetente, conteudo });
+    const mensagem = await mensagemRepository.criarMensagem({ conversa_id, remetente, conteudo, fontes });
     return res.status(201).json(mensagem);
   } catch (error) {
     return next(error);

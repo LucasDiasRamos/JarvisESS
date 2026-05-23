@@ -20,8 +20,14 @@ function buscarConversaPorId(id) {
   return db.get("SELECT *, user_id AS usuario_id FROM conversas WHERE id = ?", [id]);
 }
 
+async function deletarConversa(id) {
+  await db.run("DELETE FROM mensagens WHERE conversa_id = ?", [id]);
+  return db.run("DELETE FROM conversas WHERE id = ?", [id]);
+}
+
 module.exports = {
   buscarConversaPorId,
   criarConversa,
+  deletarConversa,
   listarConversasPorUsuario,
 };

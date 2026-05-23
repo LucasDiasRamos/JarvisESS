@@ -25,10 +25,21 @@ export default function StudentScreen({ tasks, setTasks, events, currentUser, ap
   const [calendarTime, setCalendarTime] = useState("09:00");
   const [calendarType, setCalendarType] = useState("event");
   const [calendarError, setCalendarError] = useState("");
+  const [dayPanelOpen, setDayPanelOpen] = useState(false);
+  const [editingEventId, setEditingEventId] = useState(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [editTime, setEditTime] = useState("09:00");
+  const [editType, setEditType] = useState("event");
+  const [eventError, setEventError] = useState("");
+  const [savingEventId, setSavingEventId] = useState(null);
   const [filter, setFilter] = useState("all");
   const userId = currentUser?.id || currentUser?.usuario_id || 1;
 
   const grid = useMemo(() => buildMonthGrid(view.y, view.m, events, selectedDate), [view, events, selectedDate]);
+  const selectedDateEvents = useMemo(
+    () => events.filter((event) => event.date === selectedDate).sort((a, b) => (a.time || "").localeCompare(b.time || "")),
+    [events, selectedDate],
+  );
   const daysInPickerMonth = new Date(picker.year, picker.month + 1, 0).getDate();
   const pickerDay = Math.min(picker.day, daysInPickerMonth);
 
@@ -158,6 +169,65 @@ export default function StudentScreen({ tasks, setTasks, events, currentUser, ap
     setSelectedDate(cell.iso);
     setView({ y: year, m: month - 1 });
     setPicker({ day, month: month - 1, year });
+    setDayPanelOpen(true);
+    setEditingEventId(null);
+    setEventError("");
+  }
+
+  function startEditEvent(event) {
+    setEditingEventId(event.id);
+    setEditTitle(event.title || "");
+    setEditTime(event.time || "09:00");
+    setEditType(event.kind || "event");
+    setEventError("");
+  }
+
+  async function updateCalendarItem(event) {
+    const title = editTitle.trim();
+    if (!title) return;
+
+    setSavingEventId(event.id);
+    setEventError("");
+
+    try {
+      const response = await fetch(`${apiBaseUrl}/lembretes/${event.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          titulo: title,
+          descricao: event.descricao || "",
+          tipo: editType,
+          data_hora: `${selectedDate} ${editTime || "09:00"}:00`,
+        }),
+      });
+
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+      setEditingEventId(null);
+      await reloadStudentData?.();
+    } catch (error) {
+      console.warn("Nao foi possivel atualizar o lembrete", error);
+      setEventError("Nao foi possivel alterar o lembrete.");
+    } finally {
+      setSavingEventId(null);
+    }
+  }
+
+  async function removeCalendarItem(eventId) {
+    setSavingEventId(eventId);
+    setEventError("");
+
+    try {
+      const response = await fetch(`${apiBaseUrl}/lembretes/${eventId}`, { method: "DELETE" });
+      if (!response.ok && response.status !== 204) throw new Error(`HTTP ${response.status}`);
+      if (editingEventId === eventId) setEditingEventId(null);
+      await reloadStudentData?.();
+    } catch (error) {
+      console.warn("Nao foi possivel excluir o lembrete", error);
+      setEventError("Nao foi possivel excluir o lembrete.");
+    } finally {
+      setSavingEventId(null);
+    }
   }
 
   const filtered = tasks.filter((t) => filter === "all" ? true : filter === "open" ? !t.done : t.done);
@@ -367,6 +437,77 @@ export default function StudentScreen({ tasks, setTasks, events, currentUser, ap
           </ul>
         </section>
       </div>
+      <div className={"calendar-panel-overlay" + (dayPanelOpen ? " is-open" : "")} onClick={() => setDayPanelOpen(false)} />
+      <aside className={"calendar-day-panel" + (dayPanelOpen ? " is-open" : "")} aria-hidden={!dayPanelOpen}>
+        <div className="drawer-head">
+          <div>
+            <div className="side-title">Dia selecionado</div>
+            <div className="panel-date">{fmtDate(selectedDate)}</div>
+          </div>
+          <button className="icon-btn" onClick={() => setDayPanelOpen(false)} aria-label="Fechar">×</button>
+        </div>
+
+        {eventError && <div className="form-error">{eventError}</div>}
+
+        <div className="panel-event-list">
+          {selectedDateEvents.map((event) => (
+            <article key={event.id} className="panel-event">
+              {editingEventId === event.id ? (
+                <form className="panel-edit-form" onSubmit={(e) => { e.preventDefault(); updateCalendarItem(event); }}>
+                  <input
+                    className="input"
+                    value={editTitle}
+                    onChange={(e) => setEditTitle(e.target.value)}
+                    placeholder="Titulo"
+                  />
+                  <div className="panel-edit-row">
+                    <input
+                      type="time"
+                      className="input input-date"
+                      value={editTime}
+                      onChange={(e) => setEditTime(e.target.value)}
+                    />
+                    <select className="input input-date" value={editType} onChange={(e) => setEditType(e.target.value)}>
+                      {EVENT_TYPES.map((type) => <option key={type.id} value={type.id}>{type.label}</option>)}
+                    </select>
+                  </div>
+                  <div className="panel-actions">
+                    <button className="row-btn" type="button" onClick={() => setEditingEventId(null)}>Cancelar</button>
+                    <button className="btn btn-primary" type="submit" disabled={!editTitle.trim() || savingEventId === event.id}>
+                      {savingEventId === event.id ? "Salvando..." : "Salvar"}
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                <>
+                  <div className="panel-event-main">
+                    <span className={"lg-sq evt-" + event.kind}></span>
+                    <div>
+                      <div className="panel-event-title">{event.title}</div>
+                      <div className="panel-event-meta">
+                        <span className="mono">{event.time || "--:--"}</span>
+                        {event.source === "jarvis" && <span className="jarvis-tag">criado pelo Jarvis</span>}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="panel-actions">
+                    <button className="row-btn" type="button" onClick={() => startEditEvent(event)}>Alterar</button>
+                    <button
+                      className="row-btn danger"
+                      type="button"
+                      disabled={savingEventId === event.id}
+                      onClick={() => removeCalendarItem(event.id)}
+                    >
+                      {savingEventId === event.id ? "Excluindo..." : "Excluir"}
+                    </button>
+                  </div>
+                </>
+              )}
+            </article>
+          ))}
+          {selectedDateEvents.length === 0 && <div className="empty">Nada marcado neste dia.</div>}
+        </div>
+      </aside>
     </main>);
 
 }

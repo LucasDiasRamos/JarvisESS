@@ -1,9 +1,13 @@
 const db = require("../database/db");
 
-async function criarMensagem({ conversa_id, remetente, conteudo }) {
+async function criarMensagem({ conversa_id, remetente, conteudo, fontes = [] }) {
+  const fontesJson = Array.isArray(fontes) && fontes.length > 0
+    ? JSON.stringify(fontes)
+    : null;
+
   const result = await db.run(
-    "INSERT INTO mensagens (conversa_id, remetente, conteudo) VALUES (?, ?, ?)",
-    [conversa_id || null, remetente, conteudo],
+    "INSERT INTO mensagens (conversa_id, remetente, conteudo, fontes) VALUES (?, ?, ?, ?)",
+    [conversa_id || null, remetente, conteudo, fontesJson],
   );
 
   return buscarMensagemPorId(result.id);

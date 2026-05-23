@@ -28,6 +28,32 @@ async function listarPorUsuario(req, res, next) {
   }
 }
 
+async function atualizar(req, res, next) {
+  try {
+    const current = await lembreteRepository.buscarLembretePorId(req.params.id);
+
+    if (!current) {
+      return res.status(404).json({ erro: "Lembrete nao encontrado." });
+    }
+
+    const fields = {
+      titulo: req.body?.titulo,
+      descricao: req.body?.descricao,
+      tipo: req.body?.tipo || req.body?.kind,
+      data_hora: req.body?.data_hora,
+    };
+
+    Object.keys(fields).forEach((key) => {
+      if (fields[key] === undefined) delete fields[key];
+    });
+
+    const updated = await lembreteRepository.atualizarLembrete(req.params.id, fields);
+    return res.json(updated);
+  } catch (error) {
+    return next(error);
+  }
+}
+
 async function remover(req, res, next) {
   try {
     const result = await lembreteRepository.deletarLembrete(req.params.id);
@@ -43,6 +69,7 @@ async function remover(req, res, next) {
 }
 
 module.exports = {
+  atualizar,
   criar,
   listarPorUsuario,
   remover,

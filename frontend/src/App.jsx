@@ -253,9 +253,12 @@ export default function App() {
   }
 
   function mapReminder(row) {
+    const dataHora = String(row.data_hora || "");
     return {
       id: row.id,
-      date: String(row.data_hora || "").slice(0, 10),
+      date: dataHora.slice(0, 10),
+      time: dataHora.slice(11, 16) || "09:00",
+      data_hora: dataHora,
       title: row.titulo,
       kind: row.tipo || row.kind || "event",
       source: row.origem || row.source || "user",

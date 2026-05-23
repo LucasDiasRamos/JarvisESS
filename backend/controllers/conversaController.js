@@ -22,7 +22,22 @@ async function listarPorUsuario(req, res, next) {
   }
 }
 
+async function remover(req, res, next) {
+  try {
+    const result = await conversaRepository.deletarConversa(req.params.id);
+
+    if (result.changes === 0) {
+      return res.status(404).json({ erro: "Conversa nao encontrada." });
+    }
+
+    return res.status(204).send();
+  } catch (error) {
+    return next(error);
+  }
+}
+
 module.exports = {
   criar,
   listarPorUsuario,
+  remover,
 };

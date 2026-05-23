@@ -10,6 +10,7 @@ export default function DocsScreen({ docs, setDocs, currentUser, apiBaseUrl, rel
   const [dragOver, setDragOver] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
+  const [deletingId, setDeletingId] = useState(null);
   const fileInput = useRef(null);
 
   async function addFiles(list) {
@@ -45,6 +46,24 @@ export default function DocsScreen({ docs, setDocs, currentUser, apiBaseUrl, rel
     } finally {
       setUploading(false);
       if (fileInput.current) fileInput.current.value = "";
+    }
+  }
+
+  async function removeDoc(docId) {
+    const previous = docs;
+    setDeletingId(docId);
+    setDocs((current) => current.filter((doc) => doc.id !== docId));
+
+    try {
+      const response = await fetch(`${apiBaseUrl}/arquivos/${docId}`, { method: "DELETE" });
+      if (!response.ok && response.status !== 204) throw new Error(`HTTP ${response.status}`);
+      if (reloadDocs) await reloadDocs();
+    } catch (error) {
+      console.warn("Nao foi possivel apagar o documento", error);
+      setDocs(previous);
+      setUploadError("Nao foi possivel apagar o documento.");
+    } finally {
+      setDeletingId(null);
     }
   }
 
@@ -107,6 +126,14 @@ export default function DocsScreen({ docs, setDocs, currentUser, apiBaseUrl, rel
             <div className="doc-cell mono" data-label="Adicionado">{fmtDate(d.added)}</div>
             <div className="doc-actions">
               <a className="row-btn" href={d.url} target="_blank" rel="noopener noreferrer">Visualizar</a>
+              <button
+                className="row-btn danger"
+                type="button"
+                disabled={deletingId === d.id}
+                onClick={() => removeDoc(d.id)}
+              >
+                {deletingId === d.id ? "Apagando..." : "Apagar"}
+              </button>
             </div>
           </article>
         ))}

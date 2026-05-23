@@ -65,6 +65,31 @@ def _registrar_rag_se_aplicavel(nome_tool, argumentos, resultado_tool, resposta_
     )
 
 
+def _extrair_fontes_tool(resultado_tool):
+    if not isinstance(resultado_tool, dict):
+        return []
+
+    resultado = resultado_tool.get("resultado", {})
+    dados = resultado.get("dados", {}) if isinstance(resultado, dict) else {}
+
+    if not isinstance(dados, dict):
+        return []
+
+    fontes = dados.get("fontes") or []
+    if not fontes and dados.get("fonte"):
+        fontes = [dados.get("fonte")]
+
+    vistas = set()
+    normalizadas = []
+    for fonte in fontes:
+        texto = str(fonte or "").strip()
+        if texto and texto not in vistas:
+            vistas.add(texto)
+            normalizadas.append(texto)
+
+    return normalizadas
+
+
 def _resultado_sucesso(resultado_tool):
     if not isinstance(resultado_tool, dict):
         return False
@@ -365,6 +390,12 @@ def processar_mensagem_usuario(texto_usuario: str, user_id: int = 1, conversatio
 
     resposta_json = interpretar_resposta_llm(resposta_texto)
 
+    if not isinstance(resposta_json, dict):
+        return {
+            "tipo": "resposta",
+            "resposta": _extrair_resposta_natural(resposta_texto)
+        }
+
     if resposta_json.get("usar_tool") is True:
         nome_tool = resposta_json.get("tool")
         argumentos = resposta_json.get("argumentos", {})
@@ -394,7 +425,8 @@ def processar_mensagem_usuario(texto_usuario: str, user_id: int = 1, conversatio
             "tool": nome_tool,
             "argumentos": argumentos,
             "resultado_tool": resultado_tool,
-            "resposta": resposta_final
+            "resposta": resposta_final,
+            "sources": _extrair_fontes_tool(resultado_tool),
         }
 
     return {

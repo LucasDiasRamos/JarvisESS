@@ -6,6 +6,7 @@ const router = express.Router();
 router.post("/lembretes", lembreteController.criar);
 router.get("/lembretes/user/:user_id", lembreteController.listarPorUsuario);
 router.get("/lembretes/:usuario_id", lembreteController.listarPorUsuario);
+router.put("/lembretes/:id", lembreteController.atualizar);
 router.delete("/lembretes/:id", lembreteController.remover);
 
 module.exports = router;
