@@ -9,6 +9,13 @@ from backend.ai.tool_router import interpretar_resposta_llm, executar_tool
 from backend.ai.prompts.system_prompt import SYSTEM_PROMPT
 from backend.ai.database import executar_select
 
+TOOLS_RESPOSTA_NATURAL_IMEDIATA = {
+    "gerar_exercicios",
+    "iniciar_active_recall",
+    "avaliar_resposta_active_recall",
+    "avaliar_resposta_usuario",
+}
+
 
 def contexto_data_hora_atual():
     timezone = os.getenv("JARVIS_TIMEZONE", "America/Cuiaba")
@@ -292,12 +299,67 @@ def _extrair_resposta_natural(resposta_texto):
     resposta_json = interpretar_resposta_llm(resposta_texto)
 
     if isinstance(resposta_json, dict) and resposta_json.get("resposta"):
-        return str(resposta_json["resposta"])
+        return _normalizar_texto_resposta(resposta_json["resposta"])
 
     if isinstance(resposta_json, dict) and resposta_json.get("usar_tool") is True:
         return "Pronto. A ação foi executada."
 
-    return resposta_texto
+    return _normalizar_texto_resposta(resposta_texto)
+
+
+def _normalizar_texto_resposta(valor):
+    if valor is None:
+        return ""
+
+    if isinstance(valor, str):
+        texto = valor.strip()
+        resposta_json = _tentar_ler_json_texto(texto)
+        if isinstance(resposta_json, dict) and resposta_json.get("resposta") is not None:
+            return _normalizar_texto_resposta(resposta_json.get("resposta"))
+        return texto
+
+    if isinstance(valor, list):
+        partes = [_normalizar_texto_resposta(item) for item in valor]
+        return "\n\n".join(parte for parte in partes if parte)
+
+    if isinstance(valor, dict):
+        if valor.get("resposta") is not None:
+            return _normalizar_texto_resposta(valor.get("resposta"))
+
+        if valor.get("enunciado"):
+            linhas = [str(valor.get("enunciado")).strip()]
+            alternativas = valor.get("alternativas")
+            if isinstance(alternativas, dict):
+                for chave in ("A", "B", "C", "D"):
+                    if alternativas.get(chave):
+                        linhas.append(f"{chave}) {alternativas[chave]}")
+            elif isinstance(alternativas, list):
+                for indice, alternativa in enumerate(alternativas[:4]):
+                    letra = chr(ord("A") + indice)
+                    linhas.append(f"{letra}) {alternativa}")
+            return "\n".join(linhas)
+
+        for chave in ("texto", "content", "message", "mensagem"):
+            if valor.get(chave):
+                return _normalizar_texto_resposta(valor.get(chave))
+
+    return json.dumps(valor, ensure_ascii=False, indent=2)
+
+
+def _tentar_ler_json_texto(texto):
+    texto = texto.strip()
+    if texto.startswith("```"):
+        linhas = texto.splitlines()
+        if len(linhas) >= 3 and linhas[0].startswith("```") and linhas[-1].strip() == "```":
+            texto = "\n".join(linhas[1:-1]).strip()
+
+    if not texto.startswith(("{", "[")):
+        return None
+
+    try:
+        return json.loads(texto)
+    except json.JSONDecodeError:
+        return None
 
 
 def gerar_resposta_final(historico, texto_usuario, resultado_tool):
@@ -400,6 +462,13 @@ def _gerar_resposta_final_multitool(historico, texto_usuario, execucoes):
         return _fallback_resposta_final_multitool(execucoes)
 
     return resposta
+
+
+def _deve_gerar_resposta_natural_imediata(execucoes):
+    return any(
+        execucao.get("tool") in TOOLS_RESPOSTA_NATURAL_IMEDIATA
+        for execucao in execucoes
+    )
 
 
 def _mensagens_tool_calling(historico, texto_usuario, user_id):
@@ -511,7 +580,9 @@ def processar_mensagem_usuario(texto_usuario: str, user_id: int = 1, conversatio
 
         chamadas = _extrair_chamadas_tool(resposta_json)
         if not chamadas:
-            resposta_final = resposta_json.get("resposta") or _extrair_resposta_natural(resposta_texto)
+            resposta_final = _normalizar_texto_resposta(
+                resposta_json.get("resposta") or _extrair_resposta_natural(resposta_texto)
+            )
             if execucoes:
                 for execucao in execucoes:
                     _registrar_rag_se_aplicavel(
@@ -539,8 +610,31 @@ def processar_mensagem_usuario(texto_usuario: str, user_id: int = 1, conversatio
         for chamada in chamadas:
             execucoes.append(_executar_chamada_tool(texto_usuario, user_id, chamada))
 
+        if _deve_gerar_resposta_natural_imediata(execucoes):
+            resposta_final = _gerar_resposta_final_multitool(historico, texto_usuario, execucoes)
+            for execucao in execucoes:
+                _registrar_rag_se_aplicavel(
+                    execucao["tool"],
+                    execucao["argumentos"],
+                    execucao["resultado_tool"],
+                    resposta_final,
+                )
+
+            return {
+                "tipo": "tool",
+                "tools": execucoes,
+                "resposta": _normalizar_texto_resposta(resposta_final),
+                "sources": [
+                    fonte
+                    for execucao in execucoes
+                    for fonte in _extrair_fontes_tool(execucao["resultado_tool"])
+                ],
+            }
+
     if execucoes:
-        resposta_final = _gerar_resposta_final_multitool(historico, texto_usuario, execucoes)
+        resposta_final = _normalizar_texto_resposta(
+            _gerar_resposta_final_multitool(historico, texto_usuario, execucoes)
+        )
         for execucao in execucoes:
             _registrar_rag_se_aplicavel(
                 execucao["tool"],
