@@ -6,7 +6,7 @@ from backend.ai.database import executar_select, executar_insert, executar_updat
 def criar_tarefa(
         user_id: int,
         titulo: str,
-        descricao: str,
+        descricao: str | None = None,
         data_limite: str | None = None
 ):
     if not user_id or not titulo:

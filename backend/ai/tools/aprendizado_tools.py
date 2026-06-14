@@ -1,5 +1,13 @@
 import random
-from rag.retriever import search
+from backend.ai.database import executar_insert
+
+try:
+    from rag.retriever import search
+except ModuleNotFoundError as erro:
+    search = None
+    RAG_IMPORT_ERROR = erro
+else:
+    RAG_IMPORT_ERROR = None
 
 def gerar_exercicios(query: str, quantidade: int = 3) -> dict:
     """
@@ -10,6 +18,12 @@ def gerar_exercicios(query: str, quantidade: int = 3) -> dict:
         return {
             "error": True,
             "message": "query é obrigatória."
+        }
+
+    if search is None:
+        return {
+            "error": True,
+            "message": f"RAG indisponível: dependência ausente ({RAG_IMPORT_ERROR})."
         }
         
     chunks = search(query, n_results=5)
@@ -51,6 +65,12 @@ def iniciar_active_recall(tema: str) -> dict:
             "message": "tema é obrigatório."
         }
 
+    if search is None:
+        return {
+            "error": True,
+            "message": f"RAG indisponível: dependência ausente ({RAG_IMPORT_ERROR})."
+        }
+
     chunks = search(tema, n_results=5)
 
     if not chunks:
@@ -80,7 +100,10 @@ def iniciar_active_recall(tema: str) -> dict:
 def avaliar_resposta_active_recall(
     pergunta: str,
     resposta_usuario: str,
-    contexto_original: str
+    contexto_original: str,
+    sessao_id: int | None = None,
+    avaliacao: str | None = None,
+    feedback: str | None = None,
 ) -> dict:
     """
     Recebe a resposta do usuário e retorna contexto para a LLM avaliar.
@@ -91,10 +114,27 @@ def avaliar_resposta_active_recall(
             "message": "pergunta, resposta_usuario e contexto_original são obrigatórios."
         }
 
+    resposta_id = None
+    if sessao_id:
+        resposta_id = executar_insert(
+            """
+            INSERT INTO respostas_estudo (sessao_id, pergunta, resposta_usuario, avaliacao, feedback)
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            (
+                sessao_id,
+                pergunta,
+                resposta_usuario,
+                avaliacao or "pendente_avaliacao_llm",
+                feedback or "",
+            )
+        )
+
     return {
         "error": False,
         "message": "Avalie a resposta do usuário com base no contexto.",
         "dados": {
+            "resposta_id": resposta_id,
             "pergunta": pergunta,
             "resposta_usuario": resposta_usuario,
             "contexto_original": contexto_original,

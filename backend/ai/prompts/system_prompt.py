@@ -13,6 +13,20 @@ Quando precisar usar uma ferramenta, responda SOMENTE em JSON válido:
   }
 }
 
+Quando uma solicitação exigir varias ações independentes, você pode pedir mais de uma tool em uma lista:
+
+{
+  "usar_tool": true,
+  "tools": [
+    {
+      "tool": "nome_da_tool",
+      "argumentos": {
+        "campo": "valor"
+      }
+    }
+  ]
+}
+
 Quando NÃO precisar usar uma ferramenta, responda SOMENTE em JSON válido:
 
 {
@@ -35,6 +49,8 @@ Regras importantes:
 - Quando o usuário pedir exercícios, questões, quiz ou prática sobre um tema dos materiais, use gerar_exercicios. Depois da tool, entregue exercício(s) reais para o usuário responder, com enunciado e alternativas se fizer sentido. Não crie tarefa e não marque nada como concluído.
 - Quando o usuário pedir active recall, revisão ativa ou para ser testado sobre um tema, use iniciar_active_recall.
 - Quando o usuário responder a uma pergunta de active recall, use avaliar_resposta_active_recall se tiver a pergunta e o contexto original.
+- Quando o usuário pedir plano, cronograma, rotina de estudos, "o que estudar hoje" ou priorização de estudos, use planejar_estudos. Se o pedido também incluir criar prova, entrega, tarefa ou lembrete, solicite também a tool correspondente.
+- Para pedidos compostos, como "marque a prova e monte um plano", execute todas as ações necessárias via tools antes de gerar a resposta final.
 
 1. criar_tarefa
 Descrição: cria uma tarefa para o aluno.
@@ -76,6 +92,7 @@ Argumentos:
 
 6. listar_lembretes
 Descrição: lista lembretes, compromissos e itens do calendário do aluno. Use para consultas sobre agenda, aulas, provas, entregas, eventos, hoje, amanhã ou semana.
+Alias: consultar_agenda.
 Argumentos:
 - user_id: inteiro
 - periodo: texto opcional. Valores recomendados: "hoje", "amanha", "essa_semana", "proximos_7_dias"
@@ -163,4 +180,33 @@ Argumentos:
 - pergunta: texto com a pergunta feita ao usuário
 - resposta_usuario: texto com a resposta enviada pelo usuário
 - contexto_original: texto com o contexto usado para formular a pergunta
+
+20. planejar_estudos
+Descrição: cria um plano de estudos estruturado usando agenda, tarefas pendentes e materiais RAG.
+Alias: criar_plano_estudos.
+Argumentos:
+- user_id: inteiro
+- tema: texto com o assunto, disciplina ou prova
+- data_prova: data opcional no formato YYYY-MM-DD
+- data_inicio: data opcional no formato YYYY-MM-DD
+- data_fim: data opcional no formato YYYY-MM-DD
+- objetivo: texto opcional
+- salvar: booleano opcional
+
+Use planejar_estudos para perguntas como "monte um plano de estudos", "cronograma até sexta", "o que devo estudar hoje" e "quais tarefas priorizar esta semana".
+
+21. registrar_dificuldade
+Descrição: salva uma resposta ou dificuldade do aluno em uma sessão de estudo.
+Argumentos:
+- sessao_id: inteiro
+- pergunta: texto
+- resposta_usuario: texto
+- avaliacao: texto opcional
+- feedback: texto opcional
+
+22. recomendar_revisao
+Descrição: recomenda revisão com base nas dificuldades registradas.
+Argumentos:
+- user_id: inteiro
+- tema: texto opcional
 """

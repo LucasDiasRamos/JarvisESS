@@ -40,13 +40,22 @@ from backend.ai.tools.aprendizado_tools import (
     avaliar_resposta_active_recall
 )
 
+from backend.ai.tools.estudo_tools import (
+    planejar_estudos,
+    criar_plano_estudos,
+    registrar_dificuldade,
+    recomendar_revisao
+)
+
 TOOLS = {
     "criar_tarefa": criar_tarefa,
+    "adicionar_tarefa": criar_tarefa,
     "listar_tarefas": listar_tarefas,
     "concluir_tarefa": concluir_tarefa,
     "excluir_tarefa": excluir_tarefa,
 
     "criar_lembrete": criar_lembrete,
+    "consultar_agenda": listar_lembretes,
     "listar_lembretes": listar_lembretes,
     "alterar_lembrete": alterar_lembrete,
     "excluir_lembrete": excluir_lembrete,
@@ -65,11 +74,19 @@ TOOLS = {
      "gerar_exercicios": gerar_exercicios,
     "iniciar_active_recall": iniciar_active_recall,
     "avaliar_resposta_active_recall": avaliar_resposta_active_recall,
+    "avaliar_resposta_usuario": avaliar_resposta_active_recall,
+
+    "planejar_estudos": planejar_estudos,
+    "criar_plano_estudos": criar_plano_estudos,
+    "registrar_dificuldade": registrar_dificuldade,
+    "recomendar_revisao": recomendar_revisao,
 }
 
 ARGUMENT_ALIASES = {
+    "adicionar_tarefa": {"usuario_id": "user_id"},
     "concluir_tarefa": {"id": "tarefa_id"},
     "excluir_tarefa": {"id": "tarefa_id"},
+    "consultar_agenda": {"usuario_id": "user_id"},
     "alterar_lembrete": {"id": "lembrete_id"},
     "excluir_lembrete": {"id": "lembrete_id"},
     "deletar_arquivo": {"id": "arquivo_id"},
