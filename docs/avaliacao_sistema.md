@@ -44,7 +44,6 @@ Para cada pergunta foram registrados:
 
 ## Analise de Erros
 
-
 ### Falha 1 — Geração de longas mensagens
 
 **Pergunta:** "Resuma o conteudo sobre LLVM IR"
