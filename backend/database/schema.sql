@@ -95,3 +95,5 @@ CREATE TABLE IF NOT EXISTS respostas_estudo (
   data_resposta DATETIME DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY(sessao_id) REFERENCES sessoes_estudo(id)
 );
+
+ALTER TABLE mensagens ADD COLUMN feedback TEXT;
