@@ -1,0 +1,174 @@
+[
+  {
+    "numero": 1,
+    "pergunta": "O que é SSA form?",
+    "tipo": "resposta",
+    "tools": [],
+    "sources": [],
+    "resposta": "O SSA Form refere-se ao Statement of Special Action form, que é utilizado principalmente em jurisdições de direito comum, especialmente nos Estados Unidos, para processos judiciais especiais ou emergenciais. Esse formulário permite a um juiz tomar medidas urgentes antes da audiência completa do caso, como emitir ordens temporárias ou conceder medidas protetivas."
+  },
+  {
+    "numero": 2,
+    "pergunta": "Explique dead code elimination",
+    "tipo": "resposta",
+    "tools": [],
+    "sources": [],
+    "resposta": "Dead Code Elimination é um processo de otimização em compiladores que remove o código que nunca será executado durante a execução do programa. Esse tipo de código é chamado de \"dead code\" porque ele não tem nenhum efeito sobre a execução do programa.\n\nPor exemplo, considere uma função que verifica uma condição e, dependendo do resultado dessa condição, executa um bloco de código ou outro. Se uma dessas condições é sempre falsa ou verdadeira (por exemplo, `if (true)`), então o bloco de código associado a essa condição nunca será executado e pode ser considerado dead code.\n\nO compilador detecta essas partes do código que nunca serão usadas e remove-as, resultando em código mais limpo e eficiente. Além disso, a remoção do dead code pode melhorar a performance do programa, já que reduz a quantidade de código que precisa ser carregado e executado.\n\nEsta é uma das várias técnicas de otimização que os compiladores utilizam para produzir código de máquina mais eficiente."
+  },
+  {
+    "numero": 3,
+    "pergunta": "Como funciona register allocation?",
+    "tipo": "tool",
+    "tools": [
+      {
+        "tool": "buscar_material_rag",
+        "argumentos": {
+          "query": "register allocation",
+          "n_results": 3,
+          "user_id": 1
+        },
+        "erro": false,
+        "mensagem": "3 trecho(s) relevante(s) encontrado(s)."
+      }
+    ],
+    "sources": [
+      "330249.330250",
+      "1064979.1064998"
+    ],
+    "resposta": "O processo de alocação de registros é uma otimização importante que afeta o desempenho do código compilado. Ele consiste na atribuição de registros físicos a variáveis locais e valores temporários. O método mais comumente utilizado para isso trata o problema de alocação de registros como um problema de coloração de grafos. Um gráfico de interferência é construído, onde cada nó representa um valor que deve receber um registro. Dois nós estão conectados por uma aresta se esses valores estiverem vivos ao mesmo tempo, ou seja, eles não podem receber o mesmo registro. Em seguida, o gráfico é colorido de tal forma que dois nós adjacentes recebem cores diferentes, onde cada cor representa um registro físico."
+  },
+  {
+    "numero": 4,
+    "pergunta": "O que tenho hoje?",
+    "tipo": "tool",
+    "tools": [
+      {
+        "tool": "listar_lembretes",
+        "argumentos": {
+          "user_id": 1,
+          "periodo": "hoje"
+        },
+        "erro": false,
+        "mensagem": "0 lembrete(s) encontrado(s)."
+      }
+    ],
+    "sources": [],
+    "resposta": "Hoje você não tem nenhum compromisso agendado."
+  },
+  {
+    "numero": 5,
+    "pergunta": "Tenho prova essa semana?",
+    "tipo": "tool",
+    "tools": [
+      {
+        "tool": "listar_lembretes",
+        "argumentos": {
+          "user_id": 1,
+          "periodo": "essa_semana"
+        },
+        "erro": false,
+        "mensagem": "4 lembrete(s) encontrado(s)."
+      }
+    ],
+    "sources": [],
+    "resposta": "Sim, você tem uma prova de Inteligência Artificial marcada para sábado, 2026-06-20 às 14:00."
+  },
+  {
+    "numero": 6,
+    "pergunta": "Adiciona tarefa de estudar constant folding",
+    "tipo": "tool",
+    "tools": [
+      {
+        "tool": "criar_tarefa",
+        "argumentos": {
+          "user_id": 1,
+          "titulo": "Estudar Constant Folding",
+          "data_limite": null
+        },
+        "erro": false,
+        "mensagem": "Tarefa criada com sucesso."
+      }
+    ],
+    "sources": [],
+    "resposta": "Sua tarefa de estudar constant folding foi adicionada com sucesso."
+  },
+  {
+    "numero": 7,
+    "pergunta": "Quais minhas tarefas pendentes?",
+    "tipo": "tool",
+    "tools": [
+      {
+        "tool": "listar_tarefas",
+        "argumentos": {
+          "user_id": 1
+        },
+        "erro": false,
+        "mensagem": "5 tarefa(s) encontrada(s)."
+      }
+    ],
+    "sources": [],
+    "resposta": "Você tem 5 tarefas pendentes:\n\n1. Estudar Constant Folding\n2. Revisar materiais de RAG - Ler os trechos recuperados sobre embeddings e chunking (prazo: 15/06/2026)\n3. Resolver exercicios de compiladores (prazo: 17/06/2026)\n4. Preparar roteiro do video - Mostrar arquitetura, RAG, tool calling, logs e planejamento (prazo: 19/06/2026)\n5. Completar avaliacao com 10 perguntas - Registrar pergunta, documentos recuperados, resposta e classificacao (prazo: 21/06/2026)"
+  },
+  {
+    "numero": 8,
+    "pergunta": "Monte um plano de estudos para minha prova",
+    "tipo": "tool",
+    "tools": [
+      {
+        "tool": "planejar_estudos",
+        "argumentos": {
+          "user_id": 1,
+          "tema": "prova geral",
+          "data_prova": "2026-06-23"
+        },
+        "erro": false,
+        "mensagem": "Plano de estudos criado com sucesso."
+      }
+    ],
+    "sources": [],
+    "resposta": "Seu plano de estudos foi criado com sucesso para a prova de Compiladores que ocorrerá em 23 de junho. O plano inclui revisar materiais de RAG, resolver exercícios de compiladores e preparar um roteiro para o vídeo. Priorize as tarefas com prazo próximo, intercale a leitura com active recall e gere exercícios sobre os tópicos em que você tenha mais dificuldade."
+  },
+  {
+    "numero": 9,
+    "pergunta": "Gera 3 exercícios sobre otimização de loops",
+    "tipo": "tool",
+    "tools": [
+      {
+        "tool": "gerar_exercicios",
+        "argumentos": {
+          "query": "otimização de loops",
+          "quantidade": 3,
+          "user_id": 1
+        },
+        "erro": false,
+        "mensagem": "Material encontrado. Gere 3 exercício(s) baseado(s) no contexto."
+      }
+    ],
+    "sources": [
+      "1064979.1064998",
+      "e3sconf_iconnect2023_04047",
+      "1772954.1772979"
+    ],
+    "resposta": "Aqui estão três exercícios sobre otimização de loops:\n\n1. Qual técnica de otimização de loops visa reduzir o overhead do loop replicando corpos de loop, aumentando assim a quantidade de trabalho realizado em cada iteração?\n\n   A) Loop Fusion\n   B) Loop Unrolling\n   C) Loop Scheduling\n   D) Loop Pipelining\n\n2. Em qual situação pratica ocorrem loops irredutíveis? \n\n   A) Quando há dois pontos de entrada no loop\n   B) Durante a otimização de código em tempo de execução\n   C) Ao compilar métodos para substituição na pilha (OSR)\n   D) Quando se usa uma linguagem interpretada\n\n3. O que é Loop Fusion?\n\n   A) Uma técnica que une duas ou mais estruturas de controle em um único loop\n   B) Um método de otimização que reduz a frequência de iterações em loops aninhados\n   C) Uma técnica de otimização que combina vários loops separados em um único loop\n   D) Um processo de fusão de dados dentro de um loop para melhorar a eficiência do processamento\n\nEspero que esses exercícios ajudem você a entender melhor os conceitos de otimização de loops."
+  },
+  {
+    "numero": 10,
+    "pergunta": "Me testa sobre CFG",
+    "tipo": "tool",
+    "tools": [
+      {
+        "tool": "iniciar_active_recall",
+        "argumentos": {
+          "tema": "CFG",
+          "user_id": 1
+        },
+        "erro": false,
+        "mensagem": "Contexto encontrado. Formule uma pergunta para o usuário."
+      }
+    ],
+    "sources": [
+      "2402.05256v2"
+    ],
+    "resposta": "Baseado no trecho fornecido, posso fazer a seguinte pergunta para testar seu entendimento sobre CFG:\n\nO que são os principais desafios enfrentados na geração de um fluxo de controle complexo (CFG) em termos de dependências de dados e como isso pode invalidar um CFG válido?"
+  }
+]
