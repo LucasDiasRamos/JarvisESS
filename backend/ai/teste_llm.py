@@ -18,3 +18,6 @@ except Exception as erro:
     print("Erro ao chamar a LLM:")
     print(type(erro).__name__)
     print(erro)
+
+
+

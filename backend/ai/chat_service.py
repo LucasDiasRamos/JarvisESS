@@ -9,6 +9,13 @@ from backend.ai.tool_router import interpretar_resposta_llm, executar_tool
 from backend.ai.prompts.system_prompt import SYSTEM_PROMPT
 from backend.ai.database import executar_select
 
+TOOLS_RESPOSTA_NATURAL_IMEDIATA = {
+    "gerar_exercicios",
+    "iniciar_active_recall",
+    "avaliar_resposta_active_recall",
+    "avaliar_resposta_usuario",
+}
+
 
 def contexto_data_hora_atual():
     timezone = os.getenv("JARVIS_TIMEZONE", "America/Cuiaba")
@@ -102,7 +109,7 @@ def _resultado_sucesso(resultado_tool):
 
 
 def _registrar_agenda_se_aplicavel(nome_tool, argumentos, resultado_tool):
-    if nome_tool not in {"criar_lembrete", "listar_lembretes", "alterar_lembrete", "excluir_lembrete"}:
+    if nome_tool not in {"criar_lembrete", "listar_lembretes", "consultar_agenda", "alterar_lembrete", "excluir_lembrete"}:
         return
 
     resultado = resultado_tool.get("resultado", {}) if isinstance(resultado_tool, dict) else {}
@@ -118,7 +125,7 @@ def _registrar_agenda_se_aplicavel(nome_tool, argumentos, resultado_tool):
 
 
 def _registrar_tarefa_se_aplicavel(nome_tool, argumentos, resultado_tool):
-    if nome_tool not in {"criar_tarefa", "listar_tarefas", "concluir_tarefa", "excluir_tarefa"}:
+    if nome_tool not in {"criar_tarefa", "adicionar_tarefa", "listar_tarefas", "concluir_tarefa", "excluir_tarefa"}:
         return
 
     resultado = resultado_tool.get("resultado", {}) if isinstance(resultado_tool, dict) else {}
@@ -292,12 +299,67 @@ def _extrair_resposta_natural(resposta_texto):
     resposta_json = interpretar_resposta_llm(resposta_texto)
 
     if isinstance(resposta_json, dict) and resposta_json.get("resposta"):
-        return str(resposta_json["resposta"])
+        return _normalizar_texto_resposta(resposta_json["resposta"])
 
     if isinstance(resposta_json, dict) and resposta_json.get("usar_tool") is True:
         return "Pronto. A ação foi executada."
 
-    return resposta_texto
+    return _normalizar_texto_resposta(resposta_texto)
+
+
+def _normalizar_texto_resposta(valor):
+    if valor is None:
+        return ""
+
+    if isinstance(valor, str):
+        texto = valor.strip()
+        resposta_json = _tentar_ler_json_texto(texto)
+        if isinstance(resposta_json, dict) and resposta_json.get("resposta") is not None:
+            return _normalizar_texto_resposta(resposta_json.get("resposta"))
+        return texto
+
+    if isinstance(valor, list):
+        partes = [_normalizar_texto_resposta(item) for item in valor]
+        return "\n\n".join(parte for parte in partes if parte)
+
+    if isinstance(valor, dict):
+        if valor.get("resposta") is not None:
+            return _normalizar_texto_resposta(valor.get("resposta"))
+
+        if valor.get("enunciado"):
+            linhas = [str(valor.get("enunciado")).strip()]
+            alternativas = valor.get("alternativas")
+            if isinstance(alternativas, dict):
+                for chave in ("A", "B", "C", "D"):
+                    if alternativas.get(chave):
+                        linhas.append(f"{chave}) {alternativas[chave]}")
+            elif isinstance(alternativas, list):
+                for indice, alternativa in enumerate(alternativas[:4]):
+                    letra = chr(ord("A") + indice)
+                    linhas.append(f"{letra}) {alternativa}")
+            return "\n".join(linhas)
+
+        for chave in ("texto", "content", "message", "mensagem"):
+            if valor.get(chave):
+                return _normalizar_texto_resposta(valor.get(chave))
+
+    return json.dumps(valor, ensure_ascii=False, indent=2)
+
+
+def _tentar_ler_json_texto(texto):
+    texto = texto.strip()
+    if texto.startswith("```"):
+        linhas = texto.splitlines()
+        if len(linhas) >= 3 and linhas[0].startswith("```") and linhas[-1].strip() == "```":
+            texto = "\n".join(linhas[1:-1]).strip()
+
+    if not texto.startswith(("{", "[")):
+        return None
+
+    try:
+        return json.loads(texto)
+    except json.JSONDecodeError:
+        return None
 
 
 def gerar_resposta_final(historico, texto_usuario, resultado_tool):
@@ -360,6 +422,21 @@ def _fallback_resposta_final(resultado_tool):
     return "Pronto."
 
 
+def _fallback_resposta_final_multitool(execucoes):
+    if not execucoes:
+        return "Pronto."
+
+    partes = []
+    for execucao in execucoes:
+        resultado = execucao.get("resultado_tool", {}).get("resultado", {})
+        if isinstance(resultado, dict):
+            mensagem = resultado.get("message") or resultado.get("mensagem")
+            if mensagem:
+                partes.append(mensagem)
+
+    return " ".join(partes) or "Pronto. As ações foram executadas."
+
+
 def _gerar_resposta_final_segura(historico, texto_usuario, resultado_tool):
     resposta = gerar_resposta_final(historico, texto_usuario, resultado_tool)
 
@@ -367,6 +444,31 @@ def _gerar_resposta_final_segura(historico, texto_usuario, resultado_tool):
         return _fallback_resposta_final(resultado_tool)
 
     return resposta
+
+
+def _gerar_resposta_final_multitool(historico, texto_usuario, execucoes):
+    resultado_tool = {
+        "erro": False,
+        "resultado": {
+            "message": "Ferramentas executadas com sucesso.",
+            "dados": {
+                "tools_executadas": execucoes,
+            }
+        }
+    }
+    resposta = gerar_resposta_final(historico, texto_usuario, resultado_tool)
+
+    if "A chamada para a IA falhou" in resposta:
+        return _fallback_resposta_final_multitool(execucoes)
+
+    return resposta
+
+
+def _deve_gerar_resposta_natural_imediata(execucoes):
+    return any(
+        execucao.get("tool") in TOOLS_RESPOSTA_NATURAL_IMEDIATA
+        for execucao in execucoes
+    )
 
 
 def _mensagens_tool_calling(historico, texto_usuario, user_id):
@@ -377,56 +479,179 @@ def _mensagens_tool_calling(historico, texto_usuario, user_id):
     )
 
 
-def processar_mensagem_usuario(texto_usuario: str, user_id: int = 1, conversation_id: int | None = None):
-    historico = _carregar_historico_conversa(conversation_id, texto_usuario)
-    mensagens = _mensagens_tool_calling(historico, texto_usuario, user_id)
+def _mensagem_usuario_com_resultados(texto_usuario, user_id, execucoes):
+    if not execucoes:
+        return _mensagem_usuario_atual(texto_usuario, user_id)
 
-    resposta_texto = chamar_llm(mensagens)
-    _registrar_falha_llm_se_aplicavel(texto_usuario, resposta_texto)
+    return (
+        f"{_mensagem_usuario_atual(texto_usuario, user_id)}\n\n"
+        "Ferramentas ja executadas nesta solicitacao:\n"
+        f"{json.dumps(execucoes, ensure_ascii=False, default=str)}\n\n"
+        "Se ainda faltar alguma acao, solicite a proxima tool em JSON. "
+        "Se ja houver informacoes suficientes, responda com usar_tool=false e uma resposta final natural."
+    )
 
-    if os.getenv("JARVIS_DEBUG_LLM") == "1":
-        print("\n[DEBUG] Resposta bruta da LLM:")
-        print(resposta_texto)
 
-    resposta_json = interpretar_resposta_llm(resposta_texto)
+def _mensagens_tool_calling_com_resultados(historico, texto_usuario, user_id, execucoes):
+    return _preparar_mensagens(
+        _system_prompt_tool_calling(),
+        historico,
+        _mensagem_usuario_com_resultados(texto_usuario, user_id, execucoes)
+    )
 
+
+def _extrair_chamadas_tool(resposta_json):
     if not isinstance(resposta_json, dict):
-        return {
-            "tipo": "resposta",
-            "resposta": _extrair_resposta_natural(resposta_texto)
-        }
+        return []
+
+    chamadas = resposta_json.get("tools") or resposta_json.get("tool_calls")
+    if isinstance(chamadas, list):
+        normalizadas = []
+        for chamada in chamadas:
+            if not isinstance(chamada, dict):
+                continue
+            nome_tool = chamada.get("tool") or chamada.get("name")
+            argumentos = chamada.get("argumentos") or chamada.get("arguments") or {}
+            if nome_tool:
+                normalizadas.append({"tool": nome_tool, "argumentos": argumentos})
+        return normalizadas
 
     if resposta_json.get("usar_tool") is True:
-        nome_tool = resposta_json.get("tool")
-        argumentos = resposta_json.get("argumentos", {})
+        return [{
+            "tool": resposta_json.get("tool"),
+            "argumentos": resposta_json.get("argumentos", {}),
+        }]
 
-        if "user_id" not in argumentos:
-            argumentos["user_id"] = user_id
+    return []
 
-        nome_tool, argumentos = _corrigir_tool_exercicio(texto_usuario, nome_tool, argumentos)
 
-        resultado_tool = executar_tool(nome_tool, argumentos)
-        _registrar_agenda_se_aplicavel(nome_tool, argumentos, resultado_tool)
-        _registrar_tarefa_se_aplicavel(nome_tool, argumentos, resultado_tool)
+def _executar_chamada_tool(texto_usuario, user_id, chamada):
+    nome_tool = chamada.get("tool")
+    argumentos = chamada.get("argumentos") or {}
 
-        if isinstance(resultado_tool, dict) and resultado_tool.get("erro"):
-            _registrar_erro_se_aplicavel(
-                texto_usuario,
-                "tool_calling",
-                resultado_tool.get("mensagem", "Falha ao executar ferramenta."),
-                "tool inexistente, argumentos invalidos ou excecao durante execucao",
+    if "user_id" not in argumentos:
+        argumentos["user_id"] = user_id
+
+    nome_tool, argumentos = _corrigir_tool_exercicio(texto_usuario, nome_tool, argumentos)
+
+    resultado_tool = executar_tool(nome_tool, argumentos)
+    _registrar_agenda_se_aplicavel(nome_tool, argumentos, resultado_tool)
+    _registrar_tarefa_se_aplicavel(nome_tool, argumentos, resultado_tool)
+
+    if isinstance(resultado_tool, dict) and resultado_tool.get("erro"):
+        _registrar_erro_se_aplicavel(
+            texto_usuario,
+            "tool_calling",
+            resultado_tool.get("mensagem", "Falha ao executar ferramenta."),
+            "tool inexistente, argumentos invalidos ou excecao durante execucao",
+        )
+
+    return {
+        "tool": nome_tool,
+        "argumentos": argumentos,
+        "resultado_tool": resultado_tool,
+    }
+
+
+def processar_mensagem_usuario(texto_usuario: str, user_id: int = 1, conversation_id: int | None = None):
+    historico = _carregar_historico_conversa(conversation_id, texto_usuario)
+    execucoes = []
+    resposta_texto = ""
+    max_rodadas = int(os.getenv("JARVIS_MAX_TOOL_ROUNDS", "5"))
+
+    for rodada in range(max_rodadas):
+        mensagens = _mensagens_tool_calling_com_resultados(historico, texto_usuario, user_id, execucoes)
+        resposta_texto = chamar_llm(mensagens)
+        _registrar_falha_llm_se_aplicavel(texto_usuario, resposta_texto)
+
+        if os.getenv("JARVIS_DEBUG_LLM") == "1":
+            print(f"\n[DEBUG] Resposta bruta da LLM rodada {rodada + 1}:")
+            print(resposta_texto)
+
+        resposta_json = interpretar_resposta_llm(resposta_texto)
+
+        if not isinstance(resposta_json, dict):
+            if execucoes:
+                break
+            return {
+                "tipo": "resposta",
+                "resposta": _extrair_resposta_natural(resposta_texto)
+            }
+
+        chamadas = _extrair_chamadas_tool(resposta_json)
+        if not chamadas:
+            resposta_final = _normalizar_texto_resposta(
+                resposta_json.get("resposta") or _extrair_resposta_natural(resposta_texto)
             )
+            if execucoes:
+                for execucao in execucoes:
+                    _registrar_rag_se_aplicavel(
+                        execucao["tool"],
+                        execucao["argumentos"],
+                        execucao["resultado_tool"],
+                        resposta_final,
+                    )
+                return {
+                    "tipo": "tool",
+                    "tools": execucoes,
+                    "resposta": resposta_final,
+                    "sources": [
+                        fonte
+                        for execucao in execucoes
+                        for fonte in _extrair_fontes_tool(execucao["resultado_tool"])
+                    ],
+                }
 
-        resposta_final = _gerar_resposta_final_segura(historico, texto_usuario, resultado_tool)
-        _registrar_rag_se_aplicavel(nome_tool, argumentos, resultado_tool, resposta_final)
+            return {
+                "tipo": "resposta",
+                "resposta": resposta_final
+            }
+
+        for chamada in chamadas:
+            execucoes.append(_executar_chamada_tool(texto_usuario, user_id, chamada))
+
+        if _deve_gerar_resposta_natural_imediata(execucoes):
+            resposta_final = _gerar_resposta_final_multitool(historico, texto_usuario, execucoes)
+            for execucao in execucoes:
+                _registrar_rag_se_aplicavel(
+                    execucao["tool"],
+                    execucao["argumentos"],
+                    execucao["resultado_tool"],
+                    resposta_final,
+                )
+
+            return {
+                "tipo": "tool",
+                "tools": execucoes,
+                "resposta": _normalizar_texto_resposta(resposta_final),
+                "sources": [
+                    fonte
+                    for execucao in execucoes
+                    for fonte in _extrair_fontes_tool(execucao["resultado_tool"])
+                ],
+            }
+
+    if execucoes:
+        resposta_final = _normalizar_texto_resposta(
+            _gerar_resposta_final_multitool(historico, texto_usuario, execucoes)
+        )
+        for execucao in execucoes:
+            _registrar_rag_se_aplicavel(
+                execucao["tool"],
+                execucao["argumentos"],
+                execucao["resultado_tool"],
+                resposta_final,
+            )
 
         return {
             "tipo": "tool",
-            "tool": nome_tool,
-            "argumentos": argumentos,
-            "resultado_tool": resultado_tool,
+            "tools": execucoes,
             "resposta": resposta_final,
-            "sources": _extrair_fontes_tool(resultado_tool),
+            "sources": [
+                fonte
+                for execucao in execucoes
+                for fonte in _extrair_fontes_tool(execucao["resultado_tool"])
+            ],
         }
 
     return {

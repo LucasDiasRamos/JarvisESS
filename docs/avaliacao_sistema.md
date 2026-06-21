@@ -44,7 +44,6 @@ Para cada pergunta foram registrados:
 
 ## Analise de Erros
 
-
 ### Falha 1 — Geração de longas mensagens
 
 **Pergunta:** "Resuma o conteudo sobre LLVM IR"
@@ -69,6 +68,6 @@ Para cada pergunta foram registrados:
 
 **Pergunta:** "Monte um plano de estudos para minha prova de compiladores que será no dia 23/06, marque na minha agenda a data da prova"
 
-**Comportamento observado:** O Jarvis tem uma inconsistencia a chamar 2 ou mais tool calling, gerando apenas uma das tools e a outra sendo uma resposta generica 
+**Comportamento observado:** O Jarvis tem uma inconsistencia a chamar 2 ou mais tool calling, gerando apenas uma das tools e a outra sendo uma resposta generica.
 
 **Possivel solucao:** Implementar um mecanismo de execução sequencial de múltiplas tools, permitindo que o Jarvis identifique quando uma solicitação do usuário contém mais de uma intenção. Nesse caso, a IA deve dividir a pergunta em subtarefas independentes, executar cada tool necessária em ordem e ao final, consolidar uma única resposta para o usuário.

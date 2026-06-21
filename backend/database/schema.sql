@@ -63,3 +63,37 @@ CREATE TABLE IF NOT EXISTS lembretes (
   criado_em DATETIME DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY(user_id) REFERENCES user(id)
 );
+
+CREATE TABLE IF NOT EXISTS tool_logs (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER,
+  tool_name TEXT NOT NULL,
+  input TEXT,
+  output TEXT,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS sessoes_estudo (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER,
+  tema TEXT,
+  objetivo TEXT,
+  data_inicio DATE,
+  data_fim DATE,
+  plano TEXT,
+  data_criacao DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY(user_id) REFERENCES user(id)
+);
+
+CREATE TABLE IF NOT EXISTS respostas_estudo (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  sessao_id INTEGER,
+  pergunta TEXT,
+  resposta_usuario TEXT,
+  avaliacao TEXT,
+  feedback TEXT,
+  data_resposta DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY(sessao_id) REFERENCES sessoes_estudo(id)
+);
+
+ALTER TABLE mensagens ADD COLUMN feedback TEXT;

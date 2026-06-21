@@ -2,7 +2,7 @@
 
 ## Feito por Lucas Mateus Dias Ramos e Marco Antônio de Rezende Zarate 
 
-Assistente academico com chat, RAG sobre PDFs, tarefas, lembretes, historico de conversas, upload de documentos e logs de observabilidade.
+Assistente academico inteligente com chat, RAG sobre PDFs, tarefas, lembretes, planejamento de estudos, historico de conversas, upload de documentos e logs de observabilidade.
 
 ## Stack
 
@@ -55,13 +55,13 @@ Configure a LLM no `.env` da raiz ou no ambiente do shell:
 ```env
 JARVIS_LLM_API_KEY=sua_chave
 JARVIS_LLM_BASE_URL=https://seu-endpoint/v1
-JARVIS_LLM_MODEL=google/gemma-3-12b-it
+JARVIS_LLM_MODEL=nome-do-modelo-configurado-no-endpoint
 JARVIS_LLM_TIMEOUT=30
 JARVIS_LLM_MAX_TOKENS=1500
 JARVIS_CHAT_TIMEOUT_MS=90000
 ```
 
-O `docker-compose.yml` repassa essas variaveis para o backend.
+O `docker-compose.yml` repassa essas variaveis para o backend. O projeto nao define modelo padrao: `JARVIS_LLM_MODEL` deve estar configurado no `.env` ou no ambiente.
 
 ## Banco de dados
 
@@ -83,8 +83,10 @@ docker compose exec backend sqlite3 /app/data/jarvis.db
 | Consulta a materiais de estudo | Implementado | Tool `buscar_material_rag` |
 | Agenda academica | Implementado | Tools `criar_lembrete`, `listar_lembretes` |
 | Lista de tarefas | Implementado | Tools `criar_tarefa`, `listar_tarefas`, `concluir_tarefa` |
+| Planejamento de estudos | Implementado | Tool `planejar_estudos` |
 | Tool calling com decisao pela LLM | Implementado | `backend/ai/tool_router.py` |
-| Logs de tool calling | Implementado | `data/logs/tools.jsonl` |
+| Multiplas tool calls por mensagem | Implementado | `backend/ai/chat_service.py` |
+| Logs de tool calling | Implementado | `logs/tools.jsonl` e tabela `tool_logs` |
 | Geracao de exercicios | Implementado | Tool `gerar_exercicios` |
 | Active recall interativo | Implementado | Tools `iniciar_active_recall`, `avaliar_resposta_active_recall` |
 | Avaliacao com 10 perguntas | Documentado | `docs/avaliacao_sistema.md` |
@@ -148,6 +150,12 @@ Documentação completa em [`docs/avaliacao_sistema.md`](docs/avaliacao_sistema.
 - Apenas itens com `origem: "jarvis"` mostram o selo "criado pelo Jarvis".
 - Calendario permite criar itens por tipo: Prova, Entrega, Aula e Evento.
 
+### Planejamento de estudos
+
+- A tool `planejar_estudos` combina agenda, tarefas pendentes e materiais recuperados pelo RAG.
+- O plano fica salvo em `sessoes_estudo` com periodo, prioridades, fontes e sessoes sugeridas.
+- Pedidos compostos podem executar varias tools na mesma mensagem, por exemplo criar um lembrete de prova e depois gerar o plano.
+
 ## Tools disponiveis
 
 As tools abaixo ficam registradas em `backend/ai/tool_router.py` e podem ser chamadas pela LLM via tool calling.
@@ -155,6 +163,7 @@ As tools abaixo ficam registradas em `backend/ai/tool_router.py` e podem ser cha
 ### Tarefas
 
 - `criar_tarefa`: cria uma tarefa para o aluno.
+- `adicionar_tarefa`: alias de `criar_tarefa`.
 - `listar_tarefas`: lista as tarefas do aluno.
 - `concluir_tarefa`: marca uma tarefa como concluida.
 - `excluir_tarefa`: exclui uma tarefa.
@@ -163,6 +172,7 @@ As tools abaixo ficam registradas em `backend/ai/tool_router.py` e podem ser cha
 
 - `criar_lembrete`: cria um lembrete no calendario.
 - `listar_lembretes`: lista lembretes por usuario, periodo ou intervalo de datas.
+- `consultar_agenda`: alias de `listar_lembretes`.
 - `alterar_lembrete`: altera titulo, descricao, data/hora ou tipo de um lembrete.
 - `excluir_lembrete`: exclui um lembrete.
 
@@ -182,9 +192,13 @@ As tools abaixo ficam registradas em `backend/ai/tool_router.py` e podem ser cha
 ### RAG e estudo
 
 - `buscar_material_rag`: busca informacoes nos materiais enviados pelo aluno.
+- `planejar_estudos`: cria um plano de estudos usando agenda, tarefas e RAG.
+- `criar_plano_estudos`: alias de `planejar_estudos`.
 - `gerar_exercicios`: gera exercicios reais para o aluno responder com base nos materiais.
 - `iniciar_active_recall`: inicia uma pergunta de active recall sobre um tema.
 - `avaliar_resposta_active_recall`: avalia a resposta do aluno em uma sessao de active recall.
+- `registrar_dificuldade`: salva dificuldades do aluno em uma sessao de estudo.
+- `recomendar_revisao`: recomenda revisao com base nas dificuldades registradas.
 
 ### Logs
 

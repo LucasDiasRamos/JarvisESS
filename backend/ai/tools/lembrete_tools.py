@@ -64,8 +64,8 @@ def _formatar_lembrete(lembrete: dict):
 def criar_lembrete(
         user_id: int,
         titulo: str,
-        descricao: str,
-        data_hora: str
+        data_hora: str,
+        descricao: str | None = None
 ):
     if not user_id or not titulo or not data_hora:
         return {

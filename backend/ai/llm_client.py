@@ -1,17 +1,32 @@
 import os
 
-from dotenv import load_dotenv
-from openai import APIConnectionError, APITimeoutError, OpenAI, OpenAIError
+try:
+    from dotenv import load_dotenv
+except ModuleNotFoundError:
+    def load_dotenv():
+        return False
+
+try:
+    from openai import APIConnectionError, APITimeoutError, OpenAI, OpenAIError
+except ModuleNotFoundError:
+    APIConnectionError = APITimeoutError = OpenAIError = Exception
+    OpenAI = None
 
 load_dotenv()
 
 MAX_TOKENS = int(os.getenv("JARVIS_LLM_MAX_TOKENS", "1500"))
-MODEL = os.getenv("JARVIS_LLM_MODEL", "google/gemma-3-12b-it")
 client = None
+
+
+def _get_model():
+    return (os.getenv("JARVIS_LLM_MODEL") or "").strip()
 
 
 def _get_client():
     global client
+
+    if OpenAI is None:
+        return None
 
     api_key = os.getenv("JARVIS_LLM_API_KEY")
     if not api_key:
@@ -36,9 +51,16 @@ def chamar_llm(mensagens):
             "Defina JARVIS_LLM_API_KEY no ambiente ou no arquivo .env."
         )
 
+    model = _get_model()
+    if not model:
+        return (
+            "A IA não está configurada no backend. "
+            "Defina JARVIS_LLM_MODEL no ambiente ou no arquivo .env."
+        )
+
     try:
         resposta = llm_client.chat.completions.create(
-            model=MODEL,
+            model=model,
             messages=mensagens,
             max_tokens=MAX_TOKENS
         )

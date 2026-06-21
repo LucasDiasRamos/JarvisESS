@@ -1,11 +1,13 @@
 import json
 import logging
 import os
+import sqlite3
 from datetime import datetime
 from pathlib import Path
 
 LOG_DIR = Path(os.getenv("JARVIS_LOG_DIR") or Path(__file__).parent.parent.parent / "logs")
 LOG_DIR.mkdir(exist_ok=True)
+DB_PATH = Path(os.getenv("DB_PATH", Path(__file__).resolve().parent.parent.parent / "data" / "jarvis.db"))
 
 # Log em formato legível
 logging.basicConfig(
@@ -25,6 +27,38 @@ def _append_jsonl(nome_arquivo: str, entrada: dict):
         arquivo.write(json.dumps(entrada, ensure_ascii=False, default=str) + "\n")
 
 
+def _registrar_tool_no_banco(ferramenta: str, argumentos: dict, resultado: dict, user_id: int = None):
+    try:
+        DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+        with sqlite3.connect(DB_PATH) as conexao:
+            conexao.execute(
+                """
+                CREATE TABLE IF NOT EXISTS tool_logs (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_id INTEGER,
+                    tool_name TEXT NOT NULL,
+                    input TEXT,
+                    output TEXT,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+                """
+            )
+            conexao.execute(
+                """
+                INSERT INTO tool_logs (user_id, tool_name, input, output)
+                VALUES (?, ?, ?, ?)
+                """,
+                (
+                    user_id,
+                    ferramenta,
+                    json.dumps(argumentos, ensure_ascii=False, default=str),
+                    json.dumps(resultado, ensure_ascii=False, default=str),
+                )
+            )
+    except Exception as erro:
+        logging.warning("[TOOL_LOG_DB] falha ao registrar no banco: %s", erro)
+
+
 def registrar_chamada_tool(
     ferramenta: str,
     argumentos: dict,
@@ -42,6 +76,7 @@ def registrar_chamada_tool(
     }
 
     _append_jsonl("tools.jsonl", entrada)
+    _registrar_tool_no_banco(ferramenta, argumentos, resultado, user_id=user_id)
 
     # Log legível para debug
     status = "OK" if entrada["sucesso"] else "ERRO"
