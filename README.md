@@ -1,8 +1,38 @@
-# JarvisIA
+<div align="center">
 
-## Feito por Lucas Mateus Dias Ramos e Marco Antônio de Rezende Zarate 
+# JarvisESS — Academic AI Assistant
 
-Assistente academico inteligente com chat, RAG sobre PDFs, tarefas, lembretes, planejamento de estudos, historico de conversas, upload de documentos e logs de observabilidade.
+**Chat with study materials, retrieve information from PDFs, organize tasks and plan learning with AI.**
+
+![Node.js](https://img.shields.io/badge/Node.js-5FA04E?logo=nodedotjs&logoColor=white)
+![React](https://img.shields.io/badge/React-149ECA?logo=react&logoColor=white)
+![Python](https://img.shields.io/badge/Python-3776AB?logo=python&logoColor=white)
+![RAG](https://img.shields.io/badge/RAG-ChromaDB-2563EB)
+![Docker](https://img.shields.io/badge/Docker-2496ED?logo=docker&logoColor=white)
+
+</div>
+
+## Project overview
+
+JarvisESS combines an academic assistant with **document retrieval (RAG)** and practical study-management tools. Users can ask questions, access knowledge from documents, create tasks and reminders, and explore study-planning and active-recall workflows.
+
+The application uses a **React + Vite frontend**, a **Node.js + Express backend**, a Python-based LLM tooling layer, **SQLite** for app data, and **ChromaDB + sentence-transformers** for retrieval.
+
+### What this project demonstrates
+
+- Retrieval-augmented question answering over study documents
+- LLM tool calling for tasks, reminders, and study workflows
+- Frontend/backend integration and Docker Compose orchestration
+- Recorded tool-call logs and a documented question-based evaluation
+- A collaborative development process with technical documentation
+
+**Project contributors:** Lucas Mateus Dias Ramos and Marco Antônio de Rezende Zarate.
+
+**Start here:** [Run with Docker](#executar-com-docker) · [Features](#funcionalidades) · [Evaluation notes](docs/avaliacao_sistema.md)
+
+> A public hosted demo and verified application screenshots are not currently provided in the repository. Follow the local setup below to explore the working application.
+
+---
 
 ## Stack
 
